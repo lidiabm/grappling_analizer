@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Annotated
+import traceback
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,4 +56,15 @@ async def analyze(
         return result
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error analizando vídeo: {str(e)}")
+        print("ERROR A /analyze:")
+        traceback.print_exc()
+
+        message = str(e)
+
+        if "503" in message or "UNAVAILABLE" in message:
+            raise HTTPException(
+                status_code=503,
+                detail="El servei de Gemini està saturat en aquest moment. Torna-ho a provar d’aquí uns segons."
+            )
+
+        raise HTTPException(status_code=500, detail=f"Error analitzant vídeo: {message}")

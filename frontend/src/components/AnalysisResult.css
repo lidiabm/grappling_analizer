@@ -1,0 +1,156 @@
+.analysis-container {
+  display: grid;
+  gap: 20px;
+  text-align: left;
+}
+
+.analysis-main-title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.analysis-card {
+  border: 1px solid var(--border);
+  background: var(--surface-3, #121419);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.analysis-card-title {
+  margin: 0 0 14px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.analysis-info-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.analysis-text {
+  margin: 8px 0;
+  color: var(--text-soft);
+  line-height: 1.65;
+}
+
+.analysis-text strong {
+  color: var(--text);
+}
+
+.analysis-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.analysis-list li {
+  margin-bottom: 8px;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.analysis-subblock {
+  margin-bottom: 16px;
+}
+
+.analysis-subblock:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.timeline-item {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.timeline-time {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--gold-soft, rgba(176, 141, 87, 0.14));
+  color: var(--gold, #b08d57);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.opponents-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.opponent-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.opponent-title {
+  margin: 0 0 14px;
+  color: var(--gold, #b08d57);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.opponent-block {
+  margin-bottom: 16px;
+}
+
+.opponent-block:last-child {
+  margin-bottom: 0;
+}
+
+.opponent-block-title {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 768px) {
+  .analysis-main-title {
+    font-size: 1.4rem;
+  }
+
+  .analysis-card,
+  .opponent-card {
+    padding: 16px;
+  }
+
+  .timeline-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+.analysis-empty {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
