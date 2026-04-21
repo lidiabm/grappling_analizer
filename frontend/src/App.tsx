@@ -1,334 +1,144 @@
 import { useState } from "react";
-import type { AnalysisResponse, UserProfile } from "./types";
-import UploadForm from "./components/UploadForm";
-import AnalysisResult from "./components/AnalysisResult";
 import "./App.css";
 import Header from "./components/Header";
 
-type FeatureLluitador = | "analysis" | "scouting" | "history" | "evolution" | null;
-type FeatureEntrenador = | "analysis" | "training_focus" | "scouting" | "athletes" | null;
+import HomeScreen from "./screens/HomeScreen";
+import LluitadorMenuScreen from "./screens/LluitadorMenuScreen";
+import EntrenadorMenuScreen from "./screens/EntrenadorMenuScreen";
+import LluitadorAnalysisScreen from "./screens/LluitadorAnalysisScreen";
+import EntrenadorAnalysisScreen from "./screens/EntrenadorAnalysisScreen";
+import PlaceholderScreen from "./screens/PlaceholderScreen";
+
+type Screen =
+  | "home"
+  | "lluitador-menu"
+  | "entrenador-menu"
+  | "lluitador-analysis"
+  | "lluitador-scouting"
+  | "lluitador-evolution"
+  | "lluitador-history"
+  | "entrenador-analysis"
+  | "entrenador-training_focus"
+  | "entrenador-scouting"
+  | "entrenador-athletes";
 
 function App() {
-  const [result, setResult] = useState<AnalysisResponse | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
-  const [selectedFeatureLluitador, setSelectedFeatureLluitador] =
-    useState<FeatureLluitador>(null);
-  const [selectedFeatureEntrenador, setSelectedFeatureEntrenador] =
-    useState<FeatureEntrenador>(null);
+  const [screen, setScreen] = useState<Screen>("home");
 
-  function handleStart() {
-    setIsAnalyzing(true);
-    setResult(null);
+  function handleGoHome() {
+    setScreen("home");
   }
 
-  function handleResult(newResult: AnalysisResponse) {
-    setResult(newResult);
-    setIsAnalyzing(false);
-  }
+  function renderScreen() {
+    switch (screen) {
+      case "home":
+        return (
+          <HomeScreen
+            onSelectProfile={(profile) =>
+              setScreen(
+                profile === "lluitador" ? "lluitador-menu" : "entrenador-menu"
+              )
+            }
+          />
+        );
 
-  function handleProfileSelect(profile: UserProfile) {
-    setSelectedProfile(profile);
-    setSelectedFeatureLluitador(null);
-    setSelectedFeatureEntrenador(null);
-    setResult(null);
-    setIsAnalyzing(false);
-  }
+      case "lluitador-menu":
+        return (
+          <LluitadorMenuScreen
+            onSelectFeature={(feature) => setScreen(feature)}
+            onSelectProfile={(profile) =>
+              setScreen(
+                profile === "lluitador" ? "lluitador-menu" : "entrenador-menu"
+              )
+            }
+          />
+        );
 
-  function handleFeatureSelectLluitador(feature: FeatureLluitador) {
-    setSelectedFeatureLluitador(feature);
-    setResult(null);
-    setIsAnalyzing(false);
-  }
+      case "entrenador-menu":
+        return (
+          <EntrenadorMenuScreen
+            onSelectFeature={(feature) => setScreen(feature)}
+            onSelectProfile={(profile) =>
+              setScreen(
+                profile === "lluitador" ? "lluitador-menu" : "entrenador-menu"
+              )
+            }
+          />
+        );
 
-  function handleFeatureSelectEntrenador(feature: FeatureEntrenador) {
-    setSelectedFeatureEntrenador(feature);
-    setResult(null);
-    setIsAnalyzing(false);
-  }
+      case "lluitador-analysis":
+        return (
+          <LluitadorAnalysisScreen
+            onBack={() => setScreen("lluitador-menu")}
+          />
+        );
 
-  function handleBackToProfiles() {
-    setSelectedProfile(null);
-    setSelectedFeatureLluitador(null);
-    setSelectedFeatureEntrenador(null);
-    setResult(null);
-    setIsAnalyzing(false);
+      case "entrenador-analysis":
+        return (
+          <EntrenadorAnalysisScreen
+            onBack={() => setScreen("entrenador-menu")}
+          />
+        );
+
+      case "lluitador-scouting":
+        return (
+          <PlaceholderScreen
+            title="Scouting d’oponent"
+            onBack={() => setScreen("lluitador-menu")}
+          />
+        );
+
+      case "lluitador-evolution":
+        return (
+          <PlaceholderScreen
+            title="Evolució"
+            onBack={() => setScreen("lluitador-menu")}
+          />
+        );
+
+      case "lluitador-history":
+        return (
+          <PlaceholderScreen
+            title="Historial"
+            onBack={() => setScreen("lluitador-menu")}
+          />
+        );
+
+      case "entrenador-training_focus":
+        return (
+          <PlaceholderScreen
+            title="Focus d’entrenament"
+            onBack={() => setScreen("entrenador-menu")}
+          />
+        );
+
+      case "entrenador-scouting":
+        return (
+          <PlaceholderScreen
+            title="Scouting"
+            onBack={() => setScreen("entrenador-menu")}
+          />
+        );
+
+      case "entrenador-athletes":
+        return (
+          <PlaceholderScreen
+            title="Esportistes"
+            onBack={() => setScreen("entrenador-menu")}
+          />
+        );
+
+      default:
+        return null;
+    }
   }
 
   return (
     <>
-      <Header onGoHome={handleBackToProfiles} />
+      <Header onGoHome={handleGoHome} />
 
       <main className="app-shell">
-        <section className="app-card">
-
-          {/* MENU DE PERFIL */}
-          {selectedProfile && (
-            <div className="profile-switcher profile-switcher-centered">
-              <button
-                type="button"
-                className={`profile-big-button profile-tab ${
-                  selectedProfile === "lluitador" ? "profile-tab-active" : ""
-                }`}
-                onClick={() => handleProfileSelect("lluitador")}
-              >
-                Lluitador
-              </button>
-
-              <button
-                type="button"
-                className={`profile-big-button profile-tab ${
-                  selectedProfile === "entrenador" ? "profile-tab-active" : ""
-                }`}
-                onClick={() => handleProfileSelect("entrenador")}
-              >
-                Entrenador
-              </button>
-            </div>
-          )}
-
-          {/* SIN PERFIL */}
-          {!selectedProfile && (
-            <div className="selection-panel selection-panel-centered">
-              <h2 className="section-title">Selecciona el teu perfil</h2>
-              <p className="selection-text">
-                Tria un perfil al menú superior per començar.
-              </p>
-
-              <div className="profile-big-buttons">
-                <button
-                  type="button"
-                  className="profile-big-button"
-                  onClick={() => handleProfileSelect("lluitador")}
-                >
-                  Lluitador
-                </button>
-
-                <button
-                  type="button"
-                  className="profile-big-button"
-                  onClick={() => handleProfileSelect("entrenador")}
-                >
-                  Entrenador
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* LLUITADOR */}
-          {selectedProfile === "lluitador" && (
-            <>
-              <div className="selection-panel">
-                <h2 className="section-title">
-                  Funcionalitats per a:{" "}
-                  <span className="highlight-text">lluitador</span>
-                </h2>
-
-                <p className="selection-text">
-                  Escull què vols fer a continuació.
-                </p>
-
-                <div className="button-grid button-grid-features">
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureLluitador === "analysis"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectLluitador("analysis")
-                    }
-                  >
-                    <span className="selection-button-title">
-                      Analitzar combat
-                    </span>
-                    <span className="selection-button-text">
-                      Puja un vídeo i genera una anàlisi automàtica.
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureLluitador === "scouting"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectLluitador("scouting")
-                    }
-                  >
-                    <span className="selection-button-title">
-                      Scouting d’oponent
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureLluitador === "evolution"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectLluitador("evolution")
-                    }
-                  >
-                    <span className="selection-button-title">
-                      Veure evolució
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureLluitador === "history"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectLluitador("history")
-                    }
-                  >
-                    <span className="selection-button-title">
-                      Veure historial
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* CONTENIDO LLUITADOR */}
-              {selectedFeatureLluitador === "analysis" && (
-                <div className="app-content">
-                  <div className="upload-panel">
-                    <UploadForm
-                      profile="lluitador"
-                      onStart={handleStart}
-                      onResult={handleResult}
-                    />
-                  </div>
-
-                  <div className="result-panel">
-                    {isAnalyzing && !result && (
-                      <div className="result-placeholder">
-                        <h2>Analitzant combat...</h2>
-                      </div>
-                    )}
-
-                    {!isAnalyzing && !result && (
-                      <div className="result-placeholder">
-                        <h2>Encara no hi ha cap anàlisi</h2>
-                      </div>
-                    )}
-
-                    {result && <AnalysisResult result={result} />}
-                  </div>
-                </div>
-              )}
-
-              {selectedFeatureLluitador !== "analysis" &&
-                selectedFeatureLluitador && (
-                  <div className="selection-panel">
-                    <h2 className="section-title">
-                      Funcionalitat en desenvolupament
-                    </h2>
-                  </div>
-                )}
-            </>
-          )}
-
-          {/* ENTRENADOR */}
-          {selectedProfile === "entrenador" && (
-            <>
-              <div className="selection-panel">
-                <h2 className="section-title">
-                  Funcionalitats per a:{" "}
-                  <span className="highlight-text">entrenador</span>
-                </h2>
-
-                <div className="button-grid button-grid-features">
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureEntrenador === "analysis"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectEntrenador("analysis")
-                    }
-                  >
-                    Analitzar combat
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureEntrenador === "training_focus"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectEntrenador("training_focus")
-                    }
-                  >
-                    Focus d’entrenament
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureEntrenador === "scouting"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectEntrenador("scouting")
-                    }
-                  >
-                    Scouting
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`selection-button ${
-                      selectedFeatureEntrenador === "athletes"
-                        ? "selection-button-active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      handleFeatureSelectEntrenador("athletes")
-                    }
-                  >
-                    Esportistes
-                  </button>
-                </div>
-              </div>
-
-              {/* CONTENIDO ENTRENADOR */}
-              {selectedFeatureEntrenador === "analysis" && (
-                <div className="app-content">
-                  <UploadForm
-                    profile="entrenador"
-                    onStart={handleStart}
-                    onResult={handleResult}
-                  />
-                </div>
-              )}
-
-              {selectedFeatureEntrenador &&
-                selectedFeatureEntrenador !== "analysis" && (
-                  <div className="selection-panel">
-                    <h2 className="section-title">
-                      Funcionalitat en desenvolupament
-                    </h2>
-                  </div>
-                )}
-            </>
-          )}
-
-        </section>
+        <section className="app-card">{renderScreen()}</section>
       </main>
     </>
   );
