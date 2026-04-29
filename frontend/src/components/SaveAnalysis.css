@@ -1,0 +1,122 @@
+.save-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: flex-start;   
+  justify-content: center;
+  padding-top: 120px;        
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+.save-modal {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    var(--surface-2);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  animation: fadeSlideDown 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.save-modal h2 {
+  margin: 0 0 20px;
+  color: var(--text);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.save-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.save-modal input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #0f1115;
+  color: var(--text);
+}
+
+.save-modal input::placeholder {
+  color: var(--text-muted);
+}
+
+.save-modal input:focus {
+  outline: none;
+  border-color: rgba(193, 18, 31, 0.6);
+  box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.14);
+  background: #11141a;
+}
+
+.save-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.primary-button,
+.secondary-button {
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.primary-button {
+  border: 1px solid rgba(193, 18, 31, 0.45);
+  background:
+    linear-gradient(180deg, rgba(224, 30, 45, 0.95), rgba(193, 18, 31, 0.95));
+  color: var(--text);
+  box-shadow: 0 10px 24px rgba(193, 18, 31, 0.22);
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background:
+    linear-gradient(180deg, rgba(224, 30, 45, 1), rgba(193, 18, 31, 1));
+}
+
+.primary-button:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+
+.save-success {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(63, 185, 80, 0.25);
+  border-radius: 12px;
+  background: rgba(63, 185, 80, 0.1);
+  color: var(--success);
+  font-weight: 700;
+}

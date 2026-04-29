@@ -5,9 +5,9 @@ import Header from "./components/Header";
 import HomeScreen from "./screens/HomeScreen";
 import LluitadorMenuScreen from "./screens/LluitadorMenuScreen";
 import EntrenadorMenuScreen from "./screens/EntrenadorMenuScreen";
-import LluitadorAnalysisScreen from "./screens/LluitadorAnalysisScreen";
-import EntrenadorAnalysisScreen from "./screens/EntrenadorAnalysisScreen";
+import AnalysisScreen from "./screens/AnalysisScreen";
 import PlaceholderScreen from "./screens/PlaceholderScreen";
+import HistoryScreen from "./screens/HistoryScreen";
 
 type Screen =
   | "home"
@@ -68,14 +68,16 @@ function App() {
 
       case "lluitador-analysis":
         return (
-          <LluitadorAnalysisScreen
+          <AnalysisScreen
+            profile="lluitador"
             onBack={() => setScreen("lluitador-menu")}
           />
         );
 
       case "entrenador-analysis":
         return (
-          <EntrenadorAnalysisScreen
+          <AnalysisScreen
+            profile="entrenador"
             onBack={() => setScreen("entrenador-menu")}
           />
         );
@@ -98,7 +100,8 @@ function App() {
 
       case "lluitador-history":
         return (
-          <PlaceholderScreen
+          <HistoryScreen
+            profileFilter="lluitador"
             title="Historial"
             onBack={() => setScreen("lluitador-menu")}
           />
@@ -122,7 +125,8 @@ function App() {
 
       case "entrenador-athletes":
         return (
-          <PlaceholderScreen
+          <HistoryScreen
+            profileFilter="entrenador"
             title="Esportistes"
             onBack={() => setScreen("entrenador-menu")}
           />

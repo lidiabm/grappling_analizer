@@ -154,3 +154,18 @@
   line-height: 1.5;
   font-style: italic;
 }
+
+.analysis-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.analysis-mode-label {
+  margin: 6px 0 0;
+  color: var(--gold);
+  font-size: 0.9rem;
+  font-weight: 700;
+}

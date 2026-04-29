@@ -2,6 +2,15 @@ from pydantic import BaseModel, Field
 from typing import Dict, List, Literal, Optional
 
 
+class AthleteIdentifier(BaseModel):
+    type: Literal["visual_description", "screen_side", "corner"]
+    value: str
+
+class AnalysisRequest(BaseModel):
+    profile: Literal["lluitador", "entrenador"]
+    mode: Literal["full_fight", "single_athlete"]
+    athlete_identifier: Optional[AthleteIdentifier] = None
+    
 class GuanyadorPerdedor(BaseModel):
     id: str
     descripcio: str
@@ -98,8 +107,10 @@ class PatronsGlobals(BaseModel):
     moments_decisius: List[str]
     resum_comparable: List[str]
 
-
 class AnalysisResponse(BaseModel):
+    mode: Literal["full_fight", "single_athlete"]
+    selected_oponent_id: Literal["oponent_1", "oponent_2", "desconegut"]
+
     combat_info: CombatInfo
     resum_partit: ResumPartit
     timeline: List[TimelineEvent]
@@ -108,4 +119,16 @@ class AnalysisResponse(BaseModel):
     estadistiques_derivades: Optional[EstadistiquesDerivades] = None
     patrons_globals: PatronsGlobals
     incerteses: List[str]
-    perfil: str
+    perfil: Literal["lluitador", "entrenador"]
+
+class SingleAthleteAnalysisResponse(BaseModel):
+    mode: Literal["single_athlete"]
+    selected_oponent_id: Literal["oponent_1", "oponent_2", "desconegut"]
+    combat_info: CombatInfo
+    resum_partit: ResumPartit
+    timeline: List[TimelineEvent]
+    analisi_lluitador: AnalisiOponent
+    estadistiques_estimades: EstadistiquesEstimades
+    patrons_globals: PatronsGlobals
+    incerteses: List[str]
+    perfil: Literal["lluitador", "entrenador"]

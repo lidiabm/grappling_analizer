@@ -43,7 +43,10 @@ function EntrenadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
             className="selection-button"
             onClick={() => onSelectFeature("entrenador-analysis")}
           >
-            Analitzar combat
+            <span className="selection-button-title">Analitzar combat</span>
+            <span className="selection-button-text">
+              Puja un vídeo i analitza el combat complet o centra’t en un lluitador concret.
+            </span>
           </button>
 
           <button
@@ -67,8 +70,12 @@ function EntrenadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
             className="selection-button"
             onClick={() => onSelectFeature("entrenador-athletes")}
           >
-            Esportistes
+            <span className="selection-button-title">Historial esportistes</span>
+            <span className="selection-button-text">
+              Gestiona els anàlisis guardats, tant de combats generals com dels teus alumnes.
+            </span>
           </button>
+          
         </div>
       </div>
     </>

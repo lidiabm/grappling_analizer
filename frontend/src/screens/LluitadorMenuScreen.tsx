@@ -47,7 +47,7 @@ function LluitadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
           >
             <span className="selection-button-title">Analitzar combat</span>
             <span className="selection-button-text">
-              Puja un vídeo i genera una anàlisi automàtica.
+              Puja un vídeo i analitza el combat complet o centra’t en el teu propi rendiment.
             </span>
           </button>
 
@@ -73,6 +73,9 @@ function LluitadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
             onClick={() => onSelectFeature("lluitador-history")}
           >
             <span className="selection-button-title">Historial</span>
+            <span className="selection-button-text">
+              Consulta els teus anàlisis guardats i revisa combats anteriors amb detall.
+            </span>
           </button>
         </div>
       </div>

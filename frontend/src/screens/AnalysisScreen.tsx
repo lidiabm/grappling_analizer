@@ -1,16 +1,18 @@
 import { useState } from "react";
-import type { AnalysisResponse } from "../types";
+import type { AnalysisResponse, UserProfile } from "../types";
 import UploadForm from "../components/UploadForm";
 import AnalysisResult from "../components/AnalysisResult";
 
 type Props = {
+  profile: UserProfile;
   onBack: () => void;
 };
 
-function LluitadorAnalysisScreen({ onBack }: Props) {
+function AnalysisScreen({ profile, onBack }: Props) {
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
+  const [selectedFileName, setSelectedFileName] = useState("combat-sense-titol");
+  
   function handleStart() {
     setIsAnalyzing(true);
     setResult(null);
@@ -24,16 +26,17 @@ function LluitadorAnalysisScreen({ onBack }: Props) {
   return (
     <div className="app-content">
       <div className="selection-panel">
-        <button type="button" className="selection-button" onClick={onBack}>
+        <button type="button" className="back-button" onClick={onBack}>
           ← Tornar
         </button>
       </div>
 
       <div className="upload-panel">
         <UploadForm
-          profile="lluitador"
+          profile={profile}
           onStart={handleStart}
           onResult={handleResult}
+          onFileSelected={setSelectedFileName}
         />
       </div>
 
@@ -50,10 +53,14 @@ function LluitadorAnalysisScreen({ onBack }: Props) {
           </div>
         )}
 
-        {result && <AnalysisResult result={result} />}
+        <AnalysisResult
+          result={result}
+          profile={profile}
+          fightId={selectedFileName}
+        />
       </div>
     </div>
   );
 }
 
-export default LluitadorAnalysisScreen;
+export default AnalysisScreen;

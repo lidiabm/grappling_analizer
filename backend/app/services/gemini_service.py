@@ -165,7 +165,7 @@ def _normalize_timeline_event(event: dict) -> dict:
     }
 
 
-def _safe_parse_response(text: str, profile: str) -> dict:
+def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
     fallback = _default_response(profile)
 
     if not text or not text.strip():
@@ -211,6 +211,32 @@ def _safe_parse_response(text: str, profile: str) -> dict:
         result["patrons_globals"] = data.get("patrons_globals", result["patrons_globals"])
         result["incerteses"] = data.get("incerteses", [])
         result["perfil"] = profile
+        result["mode"] = data.get("mode", mode)
+        result["selected_oponent_id"] = data.get("selected_oponent_id", "desconegut")
+
+        if mode == "single_athlete":
+            result["analisi_lluitador"] = data.get("analisi_lluitador")
+
+            if result["analisi_lluitador"] is None and isinstance(data.get("analisi_oponents"), dict):
+                selected_id = result["selected_oponent_id"]
+
+                if selected_id in ["oponent_1", "oponent_2"]:
+                    result["analisi_lluitador"] = data["analisi_oponents"].get(selected_id)
+
+                if result["analisi_lluitador"] is None:
+                    result["analisi_lluitador"] = (
+                        data["analisi_oponents"].get("oponent_1")
+                        or data["analisi_oponents"].get("oponent_2")
+                    )
+
+            result.pop("analisi_oponents", None)
+
+        else:
+            result["analisi_oponents"] = data.get(
+                "analisi_oponents",
+                result["analisi_oponents"],
+            )
+            result.pop("analisi_lluitador", None)
 
         return result
 
@@ -258,7 +284,8 @@ def _generate_content_with_retry(uploaded_file, prompt: str, retries: int = 3, w
     for attempt in range(retries):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                # model="gemini-2.5-flash",
+                model = "gemini-2.5-flash-lite",
                 contents=[uploaded_file, prompt],
             )
             return response
@@ -272,7 +299,13 @@ def _generate_content_with_retry(uploaded_file, prompt: str, retries: int = 3, w
 
     raise last_error
 
-def analyze_video(file_path: str, profile: str) -> dict:
+def analyze_video(
+    file_path: str,
+    profile: str,
+    mode: str,
+    athlete_identifier_type: str | None = None,
+    athlete_identifier_value: str | None = None,
+) -> dict:
     """
     Analitza un vídeo amb Gemini i retorna el resultat estructurat.
 
@@ -290,7 +323,12 @@ def analyze_video(file_path: str, profile: str) -> dict:
     Retorna:
         - diccionari amb summary, key_moments, technical_observations, recommendations i profile
     """
-    prompt = build_prompt(profile)
+    prompt = build_prompt(
+        profile=profile,
+        mode=mode,
+        athlete_identifier_type=athlete_identifier_type,
+        athlete_identifier_value=athlete_identifier_value,
+    )
     
     # Puja el vídeo a Gemini perquè el model el pugui processar
     uploaded_file = client.files.upload(file=file_path)
@@ -301,8 +339,8 @@ def analyze_video(file_path: str, profile: str) -> dict:
     # Demana al model que analitzi el vídeo seguint el prompt indicat
     response = _generate_content_with_retry(uploaded_file, prompt)
 
-    parsed = _safe_parse_response(response.text, profile)
-
+    parsed = _safe_parse_response(response.text, profile, mode)
+    
     if parsed.get("timeline"):
         parsed["estadistiques_derivades"] = derive_stats_from_timeline(parsed["timeline"])
     else:

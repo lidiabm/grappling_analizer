@@ -1,7 +1,24 @@
 export type UserProfile = "lluitador" | "entrenador";
-
 export type OponentId = "oponent_1" | "oponent_2" | "desconegut";
 export type Confianca = "alta" | "mitjana" | "baixa";
+
+export type AnalysisMode = "full_fight" | "single_athlete";
+
+export type AthleteIdentifierType =
+  | "visual_description"
+  | "screen_side"
+  | "corner";
+
+export type AthleteIdentifier = {
+  type: AthleteIdentifierType;
+  value: string;
+};
+
+export interface AnalysisRequest {
+  profile: UserProfile;
+  mode: AnalysisMode;
+  athlete_identifier?: AthleteIdentifier;
+}
 
 export interface OponentInfo {
   id: "oponent_1" | "oponent_2";
@@ -100,7 +117,19 @@ export interface PatronsGlobals {
   resum_comparable: string[];
 }
 
-export interface AnalysisResponse {
+export type SavedAnalysis = {
+  id: string;
+  title: string;
+  createdAt: string;
+  fightId: string;
+  profileType: UserProfile;
+  studentFolder?: string;
+  result: AnalysisResponse;
+};
+
+export interface FullFightAnalysisResponse {
+  mode: "full_fight";
+  selected_oponent_id: "desconegut";
   combat_info: CombatInfo;
   resum_partit: ResumPartit;
   timeline: TimelineEvent[];
@@ -111,3 +140,20 @@ export interface AnalysisResponse {
   incerteses: string[];
   perfil: UserProfile;
 }
+
+export interface SingleAthleteAnalysisResponse {
+  mode: "single_athlete";
+  selected_oponent_id: OponentId;
+  combat_info: CombatInfo;
+  resum_partit: ResumPartit;
+  timeline: TimelineEvent[];
+  analisi_lluitador: AnalisiOponent;
+  estadistiques_estimades: EstadistiquesEstimades;
+  patrons_globals: PatronsGlobals;
+  incerteses: string[];
+  perfil: UserProfile;
+}
+
+export type AnalysisResponse =
+  | FullFightAnalysisResponse
+  | SingleAthleteAnalysisResponse;

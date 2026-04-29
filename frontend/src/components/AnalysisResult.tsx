@@ -1,8 +1,17 @@
-import type { AnalysisResponse, AnalisiOponent } from "../types";
+import { useState } from "react";
+import type {
+  AnalysisResponse,
+  AnalisiOponent,
+  UserProfile,
+} from "../types";
 import "./AnalysisResult.css";
+import SaveAnalysisModal from "./SaveAnalysis";
 
 type Props = {
   result: AnalysisResponse | null;
+  profile: UserProfile;
+  fightId: string;
+  showSaveButton?: boolean;
 };
 
 function renderStringList(items?: string[]) {
@@ -18,6 +27,7 @@ function renderStringList(items?: string[]) {
     </ul>
   );
 }
+
 function renderOpponentLabel(
   fallbackLabel: string,
   nomVisible?: string,
@@ -30,7 +40,18 @@ function renderOpponentLabel(
   return `${fallbackLabel} (${descripcioVisual ?? "desconegut"})`;
 }
 
-function renderOponent(title: string, op: AnalisiOponent) {
+function renderOponent(title: string, op?: AnalisiOponent) {
+  if (!op) {
+    return (
+      <div className="opponent-card">
+        <h4 className="opponent-title">{title}</h4>
+        <p className="analysis-empty">
+          No hi ha informació disponible per aquest lluitador.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="opponent-card">
       <h4 className="opponent-title">{title}</h4>
@@ -108,12 +129,24 @@ function renderOponent(title: string, op: AnalisiOponent) {
   );
 }
 
-export default function AnalysisResult({ result }: Props) {
+export default function AnalysisResult({
+  result,
+  profile,
+  fightId,
+  showSaveButton = true,
+}: Props) {
+
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+
   if (!result) return null;
+
+  const isSingleAthlete = result.mode === "single_athlete";
+  const selectedOponentId = result.selected_oponent_id;
 
   const oponent1Info = result.combat_info.oponents.find(
     (o) => o.id === "oponent_1"
   );
+
   const oponent2Info = result.combat_info.oponents.find(
     (o) => o.id === "oponent_2"
   );
@@ -130,33 +163,80 @@ export default function AnalysisResult({ result }: Props) {
     oponent2Info?.descripcio_visual
   );
 
+  const singleAthleteTitle =
+    selectedOponentId === "desconegut"
+      ? "Lluitador seleccionat"
+      : `Lluitador seleccionat (${selectedOponentId})`;
+
   return (
     <section className="analysis-container">
-      <h2 className="analysis-main-title">Resultat de l’anàlisi</h2>
+      <div className="analysis-header">
+        <div>
+          <h2 className="analysis-main-title">Resultat de l’anàlisi</h2>
+
+          {isSingleAthlete && (
+            <p className="analysis-mode-label">
+              Anàlisi individual: {selectedOponentId}
+            </p>
+          )}
+        </div>
+
+        {showSaveButton && (
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => setSaveModalOpen(true)}
+          >
+            Guardar anàlisi
+          </button>
+        )}
+      </div>
+
+      {showSaveButton && (
+        <SaveAnalysisModal
+          open={saveModalOpen}
+          onClose={() => setSaveModalOpen(false)}
+          result={result}
+          fightId={fightId}
+          profile={profile}
+        />
+      )}
 
       <div className="analysis-card">
         <h3 className="analysis-card-title">Informació del combat</h3>
-        <div className="analysis-info-grid">
-          <p className="analysis-text">
-            <strong>Durada estimada:</strong> {result.combat_info.durada_estimada}
-          </p>
-          <p className="analysis-text">
-            <strong>Confiança global:</strong>{" "}
-            {result.combat_info.nivell_confianca_global}
-          </p>
-        </div>
+
+        <p className="analysis-text">
+          <strong>Durada estimada:</strong>{" "}
+          {result.combat_info.durada_estimada}
+        </p>
+
+        <p className="analysis-text">
+          <strong>Confiança global:</strong>{" "}
+          {result.combat_info.nivell_confianca_global}
+        </p>
       </div>
 
       <div className="analysis-card">
-        <h3 className="analysis-card-title">Resum del combat</h3>
-        <p className="analysis-text">
-          <strong>Guanyador:</strong> {result.resum_partit.guanyador.id} -{" "}
-          {result.resum_partit.guanyador.descripcio}
-        </p>
-        <p className="analysis-text">
-          <strong>Perdedor:</strong> {result.resum_partit.perdedor.id} -{" "}
-          {result.resum_partit.perdedor.descripcio}
-        </p>
+        <h3 className="analysis-card-title">
+          {isSingleAthlete ? "Resum del rendiment" : "Resum del combat"}
+        </h3>
+
+        {!isSingleAthlete && (
+          <>
+            <p className="analysis-text">
+              <strong>Guanyador:</strong>{" "}
+              {result.resum_partit.guanyador.id} -{" "}
+              {result.resum_partit.guanyador.descripcio}
+            </p>
+
+            <p className="analysis-text">
+              <strong>Perdedor:</strong>{" "}
+              {result.resum_partit.perdedor.id} -{" "}
+              {result.resum_partit.perdedor.descripcio}
+            </p>
+          </>
+        )}
+
         <p className="analysis-text">
           <strong>Mètode:</strong> {result.resum_partit.metode}
         </p>
@@ -174,6 +254,7 @@ export default function AnalysisResult({ result }: Props) {
 
       <div className="analysis-card">
         <h3 className="analysis-card-title">Timeline</h3>
+
         {result.timeline?.length ? (
           <ul className="timeline-list">
             {result.timeline.map((event, index) => (
@@ -199,16 +280,25 @@ export default function AnalysisResult({ result }: Props) {
       </div>
 
       <div className="analysis-card">
-        <h3 className="analysis-card-title">Anàlisi dels oponents</h3>
+        <h3 className="analysis-card-title">
+          {isSingleAthlete ? "Anàlisi del lluitador" : "Anàlisi dels oponents"}
+        </h3>
+
         <div className="opponents-grid">
-          {renderOponent(oponent1Label, result.analisi_oponents.oponent_1)}
-          {renderOponent(oponent2Label, result.analisi_oponents.oponent_2)}
+          {result.mode === "full_fight" ? (
+            <>
+              {renderOponent(oponent1Label, result.analisi_oponents.oponent_1)}
+              {renderOponent(oponent2Label, result.analisi_oponents.oponent_2)}
+            </>
+          ) : (
+            renderOponent(singleAthleteTitle, result.analisi_lluitador)
+          )}
         </div>
       </div>
 
-      {result.estadistiques_estimades && (
+      {profile === "entrenador" && (
         <div className="analysis-card">
-          <h3 className="analysis-card-title">Estadístiques (calculades)</h3>
+          <h3 className="analysis-card-title">Estadístiques</h3>
 
           {result.estadistiques_estimades.temps_per_posicio?.length ? (
             <ul className="analysis-list">
@@ -228,6 +318,21 @@ export default function AnalysisResult({ result }: Props) {
           <p className="analysis-text">
             <strong>Canvis de control:</strong>{" "}
             {result.estadistiques_estimades.canvis_control}
+          </p>
+
+          <p className="analysis-text">
+            <strong>Intents de finalització:</strong>{" "}
+            {result.estadistiques_estimades.intents_finalitzacio}
+          </p>
+
+          <p className="analysis-text">
+            <strong>Intents d’enderroc:</strong>{" "}
+            {result.estadistiques_estimades.intents_enderroc}
+          </p>
+
+          <p className="analysis-text">
+            <strong>Guard pulls:</strong>{" "}
+            {result.estadistiques_estimades.guard_pulls}
           </p>
         </div>
       )}

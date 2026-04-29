@@ -1,291 +1,454 @@
-def build_prompt(profile: str) -> str:
-    base = """
+def build_prompt(
+    profile: str,
+    mode: str,
+    athlete_identifier_type: str | None = None,
+    athlete_identifier_value: str | None = None,
+) -> str:
+    profile = profile if profile in {"entrenador", "lluitador"} else "lluitador"
+
+    if mode == "single_athlete":
+        return (
+            _base_rules()
+            + _profile_rules(profile)
+            + _single_athlete_rules(
+                athlete_identifier_type,
+                athlete_identifier_value,
+            )
+            + _single_athlete_schema(profile)
+        )
+
+    return (
+        _base_rules()
+        + _profile_rules(profile)
+        + _full_fight_rules()
+        + _full_fight_schema(profile)
+    )
+
+
+def _base_rules() -> str:
+    return """
 Analitza aquest vídeo d’un combat de grappling.
 
-Retorna la resposta exclusivament en català.
-Respon només amb JSON vàlid.
-No afegeixis text extra.
-No facis servir Markdown.
-No incloguis blocs de codi ni l'etiqueta json.
+Resposta:
+- Retorna exclusivament JSON vàlid.
+- Escriu sempre en català.
+- No afegeixis text fora del JSON.
+- No facis servir Markdown.
+- No incloguis blocs de codi ni l’etiqueta json.
+- No afegeixis claus fora de l’esquema.
+- No ometis cap camp obligatori.
 
 Regles generals:
-- Utilitza exclusivament informació observable al vídeo.
-- No inventis dades, noms, resultat oficial, categories, regles específiques ni intencions dels lluitadors si no es poden confirmar visualment.
-- Si una dada no es pot confirmar visualment, fes servir el valor "desconegut" o "incert" segons correspongui i afegeix una nota a "incerteses".
-- Si els noms dels lluitadors no es poden identificar amb claredat, fes servir "oponent_1" i "oponent_2" com a identificadors interns estables.
-- Pots fer servir una descripció observable per distingir-los visualment, com ara color de samarreta, rashguard, pantalons o un altre tret clar.
-- Quan facis inferències tàctiques, basa-les només en patrons visibles, repeticions clares o decisions observables. No atribueixis motivacions internes.
-- Mantén consistència terminològica a tota la resposta.
+- Utilitza només informació observable al vídeo.
+- No inventis noms, resultats, categories, normes o intencions.
+- Si una dada no es pot confirmar visualment, fes servir "desconegut", "incert" o una llista buida.
+- Afegeix qualsevol dubte rellevant a "incerteses".
+- Mantén coherència entre combat_info, resum_partit, timeline, estadistiques_estimades, patrons_globals i l’anàlisi principal.
 
 Identificació dels oponents:
-- Cada oponent ha de tenir un "id" fix: "oponent_1" o "oponent_2".
-- Cada oponent pot tenir una "descripcio_visual" com per exemple "rashguard blava", "samarreta negra", "sense samarreta", etc.
-- Si apareix clarament el nom d’un lluitador al vídeo o en el marcador, el pots posar a "nom_visible".
-- Si no es veu cap nom clar, fes servir "desconegut" a "nom_visible".
+- Cada oponent ha de tenir un id fix: "oponent_1" o "oponent_2".
+- Cada oponent ha de tenir una "descripcio_visual" basada en elements visibles.
+- Si apareix clarament un nom al vídeo o marcador, posa’l a "nom_visible".
+- Si no es veu cap nom, posa "desconegut".
 
-Posicions permeses (llista tancada):
-- standing
-- closed_guard_top
-- closed_guard_bottom
-- open_guard_top
-- open_guard_bottom
-- half_guard_top
-- half_guard_bottom
-- side_control_top
-- side_control_bottom
-- mount_top
-- mount_bottom
-- back_control_top
-- back_control_bottom
-- turtle_top
-- turtle_bottom
+Valors permesos:
+
+posició:
+- dret
+- guàrdia_tancada_superior
+- guàrdia_tancada_inferior
+- guàrdia_oberta_superior
+- guàrdia_oberta_inferior
+- mitja_guàrdia_superior
+- mitja_guàrdia_inferior
+- control_lateral_superior
+- control_lateral_inferior
+- muntada_superior
+- muntada_inferior
+- control_d’esquena_superior
+- control_d’esquena_inferior
+- tortuga_superior
+- tortuga_inferior
 - scramble
-- other
+- altre
 
-Valors permesos per a "controlador":
+controlador:
 - oponent_1
 - oponent_2
 - cap
 - incert
 
-Valors permesos per a "tipus_event":
+tipus_event:
 - inici_intercanvi
 - control
 - transicio
-- intento_finalitzacio
-- intento_enderroc
+- intent_finalitzacio
+- intent_enderroc
 - guard_pull
-- escape
+- escap
 - reversio
 - scramble
 - pausa
 - finalitzacio
 - altre
 
-Valors permesos per a "metode":
+metode:
 - submissio
 - punts
 - decisio
 - desconegut
 
-Valors permesos per a "confianca":
+confianca:
 - alta
 - mitjana
 - baixa
 
-Regles per al resum del partit:
-- "guanyador" i "perdedor" han de ser objectes amb:
-  - "id": "oponent_1" o "oponent_2" o "desconegut"
-  - "descripcio": una descripció observable breu o "desconegut"
-- Si no es pot confirmar visualment qui guanya o perd, fes servir "desconegut".
-- No facis servir "temps" com a mètode de victòria.
-- Si la victòria és per submissió i el tipus concret es pot inferir visualment, omple "tipus_submissio". Si no, posa "desconegut".
-- Si el resultat no es pot confirmar amb suficient evidència visual, marca-ho clarament a "incerteses".
+Regles del timeline:
+- Segmenta el combat en trams consecutius i coherents.
+- Cada tram ha de tenir "inici" i "fi" en format MM:SS.
+- No pot haver-hi solapaments.
+- Els trams han de cobrir tota la seqüència analitzada.
+- Cada tram ha de tenir una sola posició principal.
+- Si la fase és ambigua o transitòria, fes servir "scramble" o "altre".
+- "rellevancia": enter entre 1 i 5.
+- "confianca": alta, mitjana o baixa.
 
-Regles per al timeline:
-- Segmenta el combat en trams temporals coherents i consecutius.
-- Cada tram ha de tenir un inici i un fi en format MM:SS.
-- Els trams no s’han de solapar i, en conjunt, han de cobrir tota la seqüència analitzada.
-- Evita trams innecessàriament curts, excepte si hi ha un esdeveniment clarament rellevant (per exemple: sweep, takedown, pass, submission attempt, reversal o finalització).
-- Cada tram ha de tenir una sola posició principal, escollida exclusivament de la llista tancada de posicions permeses.
-- Si hi ha una fase transitòria, confusa o ambigua, fes servir "scramble" o "other".
-- Indica qui controla l’acció utilitzant exclusivament els valors permesos.
-- Descriu l’acció de forma concreta, observable i concisa, sense interpretar intencions no visibles.
-- Cada descripció ha d’explicar què passa en aquell tram amb prou detall per entendre la seqüència, però sense excedir-se en longitud.
-- "rellevancia" ha de ser un enter de 1 a 5:
-  - 1 = baixa
-  - 2 = menor
-  - 3 = moderada
-  - 4 = alta
-  - 5 = crítica
-- Afegeix "confianca" a cada segment, utilitzant només els valors permesos o l’escala definida.
-- Prioritza els canvis reals de posició, control o iniciativa per decidir quan comença o acaba un tram.
+Límits de sortida:
+- timeline: 5–20 trams.
+- patrons_tactics: màxim 5.
+- fortaleses_clau: màxim 5.
+- debilitats_clau: màxim 5.
+- errors_detallats: màxim 5.
+- encerts_clau: màxim 5.
+- sequencies_repetides: màxim 5.
+- millores_recomanades: màxim 5.
+- dinamiques_clau: màxim 5.
+- moments_decisius: màxim 5.
+- resum_comparable: màxim 5.
 
-Regles per a l’anàlisi:
-- L’anàlisi ha d’estar basada en conductes observables durant el combat.
-- "tactica_general" ha de resumir l’enfocament predominant observable.
-- "patrons_tactics" només ha d’incloure patrons repetits o clarament visibles.
-- "errors_detallats" només ha d’incloure errors amb impacte observable o probable.
-- "millores_recomanades" han de derivar directament dels errors o patrons observats.
-- No repeteixis exactament el mateix contingut en diversos camps.
-
-Regles per a les estadístiques:
-- Fes estimacions raonables només quan hi hagi base visual suficient.
-- No donis una precisió falsa.
-- Si una mètrica no és fiable, usa un valor conservador, "desconegut" quan calgui, i reflecteix-ho a "incerteses".
-- "temps_per_posicio" ha d’estimar segons acumulats per lluitador i posició.
-- "dominant" indica si aquell lluitador era el controlador principal en aquella posició.
-- "canvis_control" és el nombre estimat de canvis clars de control.
-- "intents_finalitzacio" és el nombre estimat d’intents visibles de submissió.
-- "intents_enderroc" és el nombre estimat d’intents visibles de takedown o projecció.
-- "guard_pulls" és el nombre estimat de guard pulls visibles.
-
-Regles per a patrons i comparació futura:
-- Extreu fortaleses i debilitats clau de cada lluitador de forma breu i normalitzable.
-- Extreu seqüències repetides si apareixen clarament.
-- Aquests camps han de ser útils per comparar combats futurs del mateix lluitador o per scouting d’oponents.
-
+Important:
+- Els valors de l’esquema indiquen el format esperat.
+- Substitueix sempre els exemples pel valor real observat.
 """
 
+def _profile_rules(profile: str) -> str:
     if profile == "entrenador":
-        profile_block = """
-Enfoca l’anàlisi per a un ENTRENADOR.
+        return """
+Perfil de sortida: entrenador.
 
-Prioritza:
-- patrons tàctics recurrents
-- presa de decisions observable
-- transicions i estabilització de control
-- pèrdua i recuperació de la iniciativa
-- errors sistemàtics
-- recomanacions útils per planificar entrenament
-- informació útil per comparar combats i preparar scouting
+Enfocament:
+- llenguatge tècnic i precís
+- estructura clara
+- patrons transferibles
+- relacions causa-efecte
+- lectura tàctica objectiva
 
-Fes les recomanacions amb orientació d’entrenament, correcció tècnica i treball tàctic.
-"""
-    else:
-        profile_block = """
-Enfoca l’anàlisi per a un LLUITADOR.
-
-Prioritza:
-- errors tècnics concrets
-- encerts clars
-- moments clau del combat
-- situacions on guanya o perd el control
-- recomanacions pràctiques, concretes i accionables
-- informació útil per estudiar oponents
-
-Fes les recomanacions de forma directa i aplicable a la pràctica.
+Evita:
+- parlar directament al lluitador
+- to emocional
+- recomanacions genèriques
 """
 
-    response_schema = """
+    return """
+Perfil de sortida: lluitador.
+
+Enfocament:
+- llenguatge directe
+- frases curtes
+- accions concretes
+- què repetir i què evitar
+- decisions immediates
+- ús de tècnica només quan sigui útil
+
+Evita:
+- explicacions massa abstractes
+- to acadèmic
+- recomanacions vagues
+"""
+
+
+def _full_fight_rules() -> str:
+    return """
+Mode d’anàlisi: full_fight.
+
+Regles:
+- "mode" ha de ser "full_fight".
+- "selected_oponent_id": "desconegut".
+- Analitza els dos lluitadors de manera equilibrada.
+- Dona una visió global del combat.
+- Completa "analisi_oponents" amb els dos oponents.
+- Reparteix fortaleses, debilitats, errors i encerts segons evidència visual.
+- "resum_breu" ha de descriure el desenvolupament global.
+- No incloguis "analisi_lluitador".
+"""
+
+
+def _single_athlete_rules(
+    athlete_identifier_type: str | None,
+    athlete_identifier_value: str | None,
+) -> str:
+    return f"""
+Mode d’anàlisi: single_athlete.
+
+Lluitador a analitzar:
+- tipus_identificador: {athlete_identifier_type or "desconegut"}
+- valor_identificador: {athlete_identifier_value or "desconegut"}
+
+Regles:
+- "mode" ha de ser "single_athlete".
+- Identifica quin oponent correspon al lluitador indicat.
+- "selected_oponent_id": oponent_1, oponent_2 o desconegut.
+- L’anàlisi principal ha d’estar centrada en el lluitador seleccionat.
+- No retornis "analisi_oponents".
+- Retorna obligatòriament "analisi_lluitador".
+- L’altre lluitador només s’esmenta quan calgui per entendre l’acció.
+- Errors, encerts i millores han de ser del lluitador seleccionat.
+- "resum_breu" ha de descriure sobretot el seu rendiment.
+- "patrons_globals" ha de resumir patrons útils per futurs combats.
+- A "temps_per_posicio", prioritza files del lluitador seleccionat.
+
+Si no pots identificar-lo amb seguretat:
+- posa "selected_oponent_id": "desconegut"
+- omple igualment "analisi_lluitador" amb el candidat més probable
+- marca confiança baixa quan calgui
+- explica la incertesa a "incerteses"
+"""
+
+
+def _full_fight_schema(profile: str) -> str:
+    return f"""
 Format exacte de sortida:
-{
-  "combat_info": {
+{{
+  "mode": "full_fight",
+  "selected_oponent_id": "desconegut",
+  "combat_info": {{
     "oponents": [
-      {
+      {{
         "id": "oponent_1",
         "nom_visible": "string",
         "descripcio_visual": "string"
-      },
-      {
+      }},
+      {{
         "id": "oponent_2",
         "nom_visible": "string",
         "descripcio_visual": "string"
-      }
+      }}
     ],
     "durada_estimada": "MM:SS",
-    "nivell_confianca_global": "alta"
-  },
-  "resum_partit": {
-    "guanyador": {
-      "id": "string",
+    "nivell_confianca_global": "alta|mitjana|baixa"
+  }},
+  "resum_partit": {{
+    "guanyador": {{
+      "id": "oponent_1|oponent_2|desconegut",
       "descripcio": "string"
-    },
-    "perdedor": {
-      "id": "string",
+    }},
+    "perdedor": {{
+      "id": "oponent_1|oponent_2|desconegut",
       "descripcio": "string"
-    },
-    "metode": "string",
-    "tipus_submissio": "string",
+    }},
+    "metode": "submissio|punts|decisio|desconegut",
+    "tipus_submissio": "string|desconegut",
     "resum_breu": "string"
-  },
+  }},
   "timeline": [
-    {
+    {{
       "inici": "MM:SS",
       "fi": "MM:SS",
-      "posicio": "string",
-      "controlador": "string",
-      "tipus_event": "string",
+      "posicio": "standing",
+      "controlador": "cap",
+      "tipus_event": "inici_intercanvi",
       "descripcio": "string",
       "rellevancia": 1,
-      "confianca": "string"
-    }
+      "confianca": "alta|mitjana|baixa"
+    }}
   ],
-  "analisi_oponents": {
-    "oponent_1": {
+  "analisi_oponents": {{
+    "oponent_1": {{
       "tactica_general": "string",
       "patrons_tactics": ["string"],
       "fortaleses_clau": ["string"],
       "debilitats_clau": ["string"],
       "errors_detallats": [
-        {
+        {{
           "error": "string",
           "moment_aproximat": "MM:SS",
           "impacte": "string"
-        }
+        }}
       ],
       "encerts_clau": [
-        {
+        {{
           "encert": "string",
           "moment_aproximat": "MM:SS",
           "impacte": "string"
-        }
+        }}
       ],
       "sequencies_repetides": ["string"],
       "millores_recomanades": [
-        {
+        {{
           "millora": "string",
           "objectiu": "string",
           "benefici_esperat": "string"
-        }
+        }}
       ]
-    },
-    "oponent_2": {
+    }},
+    "oponent_2": {{
       "tactica_general": "string",
       "patrons_tactics": ["string"],
       "fortaleses_clau": ["string"],
       "debilitats_clau": ["string"],
       "errors_detallats": [
-        {
+        {{
           "error": "string",
           "moment_aproximat": "MM:SS",
           "impacte": "string"
-        }
+        }}
       ],
       "encerts_clau": [
-        {
+        {{
           "encert": "string",
           "moment_aproximat": "MM:SS",
           "impacte": "string"
-        }
+        }}
       ],
       "sequencies_repetides": ["string"],
-      "millores_recomanades": [  
-        {
+      "millores_recomanades": [
+        {{
           "millora": "string",
           "objectiu": "string",
           "benefici_esperat": "string"
-        }
+        }}
       ]
-    }
-  },
-  "estadistiques_estimades": {
+    }}
+  }},
+  "estadistiques_estimades": {{
     "temps_per_posicio": [
-      {
-        "lluitador": "string",
-        "posicio": "string",
+      {{
+        "lluitador": "oponent_1|oponent_2|desconegut",
+        "posicio": "standing",
         "segons": 0,
-        "dominant": true
-      }
+        "dominant": false
+      }}
     ],
     "canvis_control": 0,
     "intents_finalitzacio": 0,
     "intents_enderroc": 0,
     "guard_pulls": 0
-  },
-  "patrons_globals": {
+  }},
+  "patrons_globals": {{
     "dinamiques_clau": ["string"],
     "moments_decisius": ["string"],
     "resum_comparable": ["string"]
-  },
-  "incerteses": ["string"]
-}
+  }},
+  "incerteses": ["string"],
+  "perfil": "{profile}"
+}}
 
 Restriccions finals:
-- Retorna només JSON vàlid.
-- No afegeixis cap clau fora d’aquest esquema.
-- Si una dada no es pot confirmar, fes servir "desconegut", "incert" o una llista buida segons pertoqui.
-- Mantén consistència entre timeline, resum i estadístiques.
+- No incloguis "analisi_lluitador".
+- "perfil" ha de ser exactament "{profile}".
 """
 
-    return base + profile_block + response_schema
+
+def _single_athlete_schema(profile: str) -> str:
+    return f"""
+Format exacte de sortida:
+{{
+  "mode": "single_athlete",
+  "selected_oponent_id": "oponent_1|oponent_2|desconegut",
+  "combat_info": {{
+    "oponents": [
+      {{
+        "id": "oponent_1",
+        "nom_visible": "string",
+        "descripcio_visual": "string"
+      }},
+      {{
+        "id": "oponent_2",
+        "nom_visible": "string",
+        "descripcio_visual": "string"
+      }}
+    ],
+    "durada_estimada": "MM:SS",
+    "nivell_confianca_global": "alta|mitjana|baixa"
+  }},
+  "resum_partit": {{
+    "guanyador": {{
+      "id": "oponent_1|oponent_2|desconegut",
+      "descripcio": "string"
+    }},
+    "perdedor": {{
+      "id": "oponent_1|oponent_2|desconegut",
+      "descripcio": "string"
+    }},
+    "metode": "submissio|punts|decisio|desconegut",
+    "tipus_submissio": "string|desconegut",
+    "resum_breu": "string"
+  }},
+  "timeline": [
+    {{
+      "inici": "MM:SS",
+      "fi": "MM:SS",
+      "posicio": "standing",
+      "controlador": "cap",
+      "tipus_event": "inici_intercanvi",
+      "descripcio": "string",
+      "rellevancia": 1,
+      "confianca": "alta|mitjana|baixa"
+    }}
+  ],
+  "analisi_lluitador": {{
+    "tactica_general": "string",
+    "patrons_tactics": ["string"],
+    "fortaleses_clau": ["string"],
+    "debilitats_clau": ["string"],
+    "errors_detallats": [
+      {{
+        "error": "string",
+        "moment_aproximat": "MM:SS",
+        "impacte": "string"
+      }}
+    ],
+    "encerts_clau": [
+      {{
+        "encert": "string",
+        "moment_aproximat": "MM:SS",
+        "impacte": "string"
+      }}
+    ],
+    "sequencies_repetides": ["string"],
+    "millores_recomanades": [
+      {{
+        "millora": "string",
+        "objectiu": "string",
+        "benefici_esperat": "string"
+      }}
+    ]
+  }},
+  "estadistiques_estimades": {{
+    "temps_per_posicio": [
+      {{
+        "lluitador": "oponent_1|oponent_2|desconegut",
+        "posicio": "standing",
+        "segons": 0,
+        "dominant": false
+      }}
+    ],
+    "canvis_control": 0,
+    "intents_finalitzacio": 0,
+    "intents_enderroc": 0,
+    "guard_pulls": 0
+  }},
+  "patrons_globals": {{
+    "dinamiques_clau": ["string"],
+    "moments_decisius": ["string"],
+    "resum_comparable": ["string"]
+  }},
+  "incerteses": ["string"],
+  "perfil": "{profile}"
+}}
+
+Restriccions finals:
+- No incloguis "analisi_oponents".
+- El camp principal d’anàlisi ha de ser només "analisi_lluitador".
+- "perfil" ha de ser exactament "{profile}".
+"""
