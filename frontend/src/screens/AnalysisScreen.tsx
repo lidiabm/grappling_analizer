@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { AnalysisResponse, UserProfile } from "../types";
 import UploadForm from "../components/UploadForm";
 import AnalysisResult from "../components/AnalysisResult";
+import ArrowLeftIcon from "../icons/ArrowLeftIcon";
+
 
 type Props = {
   profile: UserProfile;
@@ -27,7 +29,7 @@ function AnalysisScreen({ profile, onBack }: Props) {
     <div className="app-content">
       <div className="selection-panel">
         <button type="button" className="back-button" onClick={onBack}>
-          ← Tornar
+          <ArrowLeftIcon size={20} />
         </button>
       </div>
 
