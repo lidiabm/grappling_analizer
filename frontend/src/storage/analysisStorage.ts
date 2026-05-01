@@ -22,3 +22,15 @@ export function getSavedAnalyses(): SavedAnalysis[] {
     return [];
   }
 }
+
+export function deleteAnalysis(id: string) {
+  const current = getSavedAnalyses();
+
+  const updated = current.filter((analysis) => analysis.id !== id);
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+}
+
+export function clearSavedAnalyses() {
+  localStorage.removeItem(STORAGE_KEY);
+}

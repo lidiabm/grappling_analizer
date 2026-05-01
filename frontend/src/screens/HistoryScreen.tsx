@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SavedAnalysis } from "../types";
-import { getSavedAnalyses } from "../storage/analysisStorage";
+import { getSavedAnalyses, deleteAnalysis } from "../storage/analysisStorage";
 import AnalysisResult from "../components/AnalysisResult";
 import "./HistoryScreen.css";
 import ArrowLeftIcon from "../icons/ArrowLeftIcon";
@@ -72,6 +72,24 @@ export default function HistoryScreen({
     );
   }, [analyses]);
 
+  const handleDeleteAnalysis = (id: string) => {
+    const confirmDelete = window.confirm(
+      "Segur que vols eliminar aquesta anàlisi?"
+    );
+
+    if (!confirmDelete) return;
+
+    deleteAnalysis(id);
+
+    setAnalyses((current) =>
+      current.filter((analysis) => analysis.id !== id)
+    );
+
+    if (selectedAnalysis?.id === id) {
+      setSelectedAnalysis(null);
+    }
+  };
+
   if (selectedAnalysis) {
     return (
       <div className="history-detail">
@@ -88,6 +106,7 @@ export default function HistoryScreen({
           profile={selectedAnalysis.profileType}
           fightId={selectedAnalysis.fightId}
           showSaveButton={false}
+          onDelete={() => handleDeleteAnalysis(selectedAnalysis.id)}
         />
       </div>
     );
@@ -115,6 +134,7 @@ export default function HistoryScreen({
         <AnalysisList
           analyses={selectedAnalyses}
           onSelectAnalysis={setSelectedAnalysis}
+          onDeleteAnalysis={handleDeleteAnalysis}
         />
       </div>
     );
@@ -143,6 +163,7 @@ export default function HistoryScreen({
         <AnalysisList
           analyses={studentAnalyses}
           onSelectAnalysis={setSelectedAnalysis}
+          onDeleteAnalysis={handleDeleteAnalysis}
         />
       </div>
     );
@@ -221,8 +242,6 @@ export default function HistoryScreen({
   );
 }
 
-// ---------------- COMPONENTES AUX ----------------
-
 function FolderGrid({
   folders,
 }: {
@@ -260,9 +279,11 @@ function FolderGrid({
 function AnalysisList({
   analyses,
   onSelectAnalysis,
+  onDeleteAnalysis,
 }: {
   analyses: SavedAnalysis[];
   onSelectAnalysis: (analysis: SavedAnalysis) => void;
+  onDeleteAnalysis: (id: string) => void;
 }) {
   if (analyses.length === 0) {
     return (
@@ -275,20 +296,33 @@ function AnalysisList({
   return (
     <div className="history-list">
       {analyses.map((analysis) => (
-        <button
-          key={analysis.id}
-          type="button"
-          onClick={() => onSelectAnalysis(analysis)}
-          className="history-item"
-        >
-          <div className="history-item-top">
-            <strong className="history-item-title">{analysis.title}</strong>
+        <div key={analysis.id} className="history-item">
+          <button
+            type="button"
+            onClick={() => onSelectAnalysis(analysis)}
+            className="history-item-content"
+          >
+            <div className="history-item-top">
+              <strong className="history-item-title">{analysis.title}</strong>
 
-            <span className="history-item-date">
-              {new Date(analysis.createdAt).toLocaleString("ca-ES")}
-            </span>
-          </div>
-        </button>
+              <span className="history-item-date">
+                {new Date(analysis.createdAt).toLocaleString("ca-ES")}
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="history-delete-button"
+            onClick={(e) => {
+                e.stopPropagation(); 
+                onDeleteAnalysis(analysis.id);
+            }}
+            aria-label="Eliminar anàlisi"
+            >
+            ✕
+          </button>
+        </div>
       ))}
     </div>
   );

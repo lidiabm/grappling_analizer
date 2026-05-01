@@ -8,6 +8,7 @@ type Props = {
   profile: UserProfile;
   fightId: string;
   showSaveButton?: boolean;
+  onDelete?: () => void;
 };
 
 type AnalysisType =
@@ -340,6 +341,7 @@ export default function AnalysisResult({
   profile,
   fightId,
   showSaveButton = true,
+  onDelete,
 }: Props) {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
 
@@ -398,15 +400,28 @@ export default function AnalysisResult({
           )}
         </div>
 
-        {showSaveButton && (
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => setSaveModalOpen(true)}
-          >
-            Guardar anàlisi
-          </button>
-        )}
+        <div className="analysis-header-actions">
+          {showSaveButton ? (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => setSaveModalOpen(true)}
+            >
+              Guardar anàlisi
+            </button>
+          ) : (
+            onDelete && (
+              <button
+                type="button"
+                className="analysis-delete-button"
+                onClick={onDelete}
+                aria-label="Eliminar anàlisi"
+              >
+                Eliminar anàlisi
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       {showSaveButton && (
