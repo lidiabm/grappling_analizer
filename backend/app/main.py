@@ -6,7 +6,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.schemas.analysis import AnalysisResponse, SingleAthleteAnalysisResponse
+# from app.schemas.analysis import AnalysisResponse, SingleAthleteAnalysisResponse
 from app.services.gemini_service import analyze_video
 
 app = FastAPI(title="Grappling Analyzer API")
@@ -34,7 +34,8 @@ def health():
 
 @app.post(
     "/analyze",
-    response_model=Union[AnalysisResponse, SingleAthleteAnalysisResponse],
+    # response_model=Union[AnalysisResponse, SingleAthleteAnalysisResponse],
+    response_model=None,
 )
 async def analyze(
     video: Annotated[UploadFile, File(...)],
@@ -81,25 +82,12 @@ async def analyze(
 
         if mode == "full_fight":
             result["selected_oponent_id"] = "desconegut"
-
-            if "analisi_oponents" not in result:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Gemini no ha retornat el camp analisi_oponents en mode full_fight.",
-                )
-
             result.pop("analisi_lluitador", None)
 
         if mode == "single_athlete":
             result.setdefault("selected_oponent_id", "desconegut")
-
-            if "analisi_lluitador" not in result:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Gemini no ha retornat el camp analisi_lluitador en mode single_athlete.",
-                )
-
             result.pop("analisi_oponents", None)
+            result.pop("lectura_global", None)
 
         return result
 

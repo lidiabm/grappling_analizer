@@ -154,6 +154,4 @@ export interface SingleAthleteAnalysisResponse {
   perfil: UserProfile;
 }
 
-export type AnalysisResponse =
-  | FullFightAnalysisResponse
-  | SingleAthleteAnalysisResponse;
+export type AnalysisResponse = any;

@@ -9,6 +9,7 @@ type Props = {
   result: AnalysisResponse;
   fightId: string;
   profile: UserProfile;
+
 };
 
 export default function SaveAnalysisModal({
@@ -25,11 +26,13 @@ export default function SaveAnalysisModal({
   if (!open) return null;
 
   const isCoach = profile === "entrenador";
+  const isSingleAthleteAnalysis = result.mode === "single_athlete";
+  const showStudentFolder = isCoach && isSingleAthleteAnalysis;
 
   const handleSave = () => {
     if (!title.trim()) return;
 
-    if (isCoach && !studentFolder.trim()) return;
+    if (showStudentFolder  && !studentFolder.trim()) return;
 
     const analysisToSave: SavedAnalysis = {
       id: crypto.randomUUID(),
@@ -37,7 +40,7 @@ export default function SaveAnalysisModal({
       createdAt: new Date().toISOString(),
       fightId,
       profileType: profile,
-      studentFolder: isCoach ? studentFolder.trim() : undefined,
+      studentFolder: showStudentFolder ? studentFolder.trim() : undefined,
       result,
     };
 
@@ -67,7 +70,7 @@ export default function SaveAnalysisModal({
           />
         </label>
 
-        {isCoach && (
+        {showStudentFolder && (
           <label>
             Carpeta / alumne
             <input
@@ -90,7 +93,7 @@ export default function SaveAnalysisModal({
             type="button"
             onClick={handleSave}
             className="primary-button"
-            disabled={!title.trim() || (isCoach && !studentFolder.trim())}
+            disabled={!title.trim() || (showStudentFolder && !studentFolder.trim())}
           >
             Guardar
           </button>

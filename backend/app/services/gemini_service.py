@@ -5,7 +5,7 @@ import time
 from google import genai
 from google.genai import types
 
-from app.utils.prompts import build_prompt
+from app.utils.prompts2 import build_prompt
 from app.utils.stats import derive_stats_from_timeline
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -29,14 +29,13 @@ ALLOWED_POSITIONS = {
     "scramble",
     "other",
 }
-
 ALLOWED_CONTROLLERS = {"oponent_1", "oponent_2", "cap", "incert"}
 ALLOWED_TIPUS_EVENT = {
     "inici_intercanvi",
     "control",
     "transicio",
-    "intento_finalitzacio",
-    "intento_enderroc",
+    "intent_finalitzacio",
+    "intent_enderroc",
     "guard_pull",
     "escape",
     "reversio",
@@ -47,9 +46,24 @@ ALLOWED_TIPUS_EVENT = {
 }
 ALLOWED_CONFIANCA = {"alta", "mitjana", "baixa"}
 
+def _analysis_type(profile: str, mode: str) -> str:
+    mapping = {
+        ("lluitador", "single_athlete"): "auto_analisi",
+        ("lluitador", "full_fight"): "combat_lluitador",
+        ("entrenador", "single_athlete"): "analisi_alumne",
+        ("entrenador", "full_fight"): "combat_entrenador",
+    }
+    return mapping.get((profile, mode), "auto_analisi")
 
-def _default_response(profile: str) -> dict:
-    return {
+
+def _default_response(profile: str, mode: str) -> dict:
+    analysis_type = _analysis_type(profile, mode)
+
+    base = {
+        "mode": mode,
+        "perfil": profile,
+        "analysis_type": analysis_type,
+        "selected_oponent_id": "desconegut",
         "combat_info": {
             "oponents": [
                 {
@@ -68,58 +82,150 @@ def _default_response(profile: str) -> dict:
         },
         "resum_partit": {
             "guanyador": {"id": "desconegut", "descripcio": "desconegut"},
-            "perdedor": {"id": "desconegut", "descripcio": "desconegut"},
             "metode": "desconegut",
             "tipus_submissio": "desconegut",
             "resum_breu": "",
         },
         "timeline": [],
-        "analisi_oponents": {
-            "oponent_1": {
-                "tactica_general": "",
-                "patrons_tactics": [],
-                "fortaleses_clau": [],
-                "debilitats_clau": [],
-                "errors_detallats": [],
-                "encerts_clau": [],
-                "sequencies_repetides": [],
-                "millores_recomanades": [],
-            },
-            "oponent_2": {
-                "tactica_general": "",
-                "patrons_tactics": [],
-                "fortaleses_clau": [],
-                "debilitats_clau": [],
-                "errors_detallats": [],
-                "encerts_clau": [],
-                "sequencies_repetides": [],
-                "millores_recomanades": [],
-            },
-        },
-        "estadistiques_estimades": {
-            "temps_per_posicio": [],
-            "canvis_control": 0,
-            "intents_finalitzacio": 0,
-            "intents_enderroc": 0,
-            "guard_pulls": 0,
-        },
-        "patrons_globals": {
-            "dinamiques_clau": [],
-            "moments_decisius": [],
-            "resum_comparable": [],
-        },
         "incerteses": [],
-        "perfil": profile,
     }
 
+    if analysis_type == "auto_analisi":
+        base["analisi_lluitador"] = {
+            "resum_personal": "",
+            "tactica_general": "",
+            "patrons_tactics": [],
+            "fortaleses_clau": [],
+            "debilitats_clau": [],
+            "errors_i_correccions": [],
+            "encerts_clau": [],
+            "millores_recomanades": [],
+        }
+
+    elif analysis_type == "analisi_alumne":
+        base["analisi_lluitador"] = {
+            "resum_tecnic": "",
+            "model_de_combat": "",
+            "lectura_posicional": "",
+            "patrons_tactics": [],
+            "fortaleses_clau": [],
+            "debilitats_clau": [],
+            "errors_i_correccions": [],
+            "encerts_clau": [],
+            "prioritats_de_treball": [],
+        }
+        base["estadistiques_estimades"] = _default_student_stats()
+
+    elif analysis_type == "combat_lluitador":
+        base["analisi_oponents"] = {
+            "oponent_1": _default_general_opponent(),
+            "oponent_2": _default_general_opponent(),
+        }
+        base["lectura_global"] = {
+            "dinamica_general": "",
+            "moments_decisius": [],
+            "lliçons_practiques": [],
+        }
+
+    elif analysis_type == "combat_entrenador":
+        base["analisi_oponents"] = {
+            "oponent_1": _default_general_coach_opponent(),
+            "oponent_2": _default_general_coach_opponent(),
+        }
+        base["estadistiques_estimades"] = _default_combat_stats()
+        base["lectura_global"] = {
+            "dinamica_general": "",
+            "moments_decisius": [],
+            "claus_tactiques": [],
+        }
+
+    return base
+
+def _default_general_opponent() -> dict:
+    return {
+        "tactica_general": "",
+        "patrons_tactics": [],
+        "fortaleses_clau": [],
+        "debilitats_clau": [],
+        "errors_principals": [],
+        "encerts_clau": [],
+        "resum_rendiment": "",
+    }
+
+
+def _default_general_coach_opponent() -> dict:
+    return {
+        "tactica_general": "",
+        "model_de_combat": "",
+        "lectura_posicional": "",
+        "patrons_tactics": [],
+        "fortaleses_clau": [],
+        "debilitats_clau": [],
+        "errors_principals": [],
+        "encerts_clau": [],
+        "resum_rendiment": "",
+    }
+
+
+def _default_student_stats() -> dict:
+    return {
+        "temps_per_posicio": [],
+        "temps_dominant_total": 0,
+        "temps_defensiu_total": 0,
+        "temps_neutral_total": 0,
+        "canvis_control": 0,
+        "intents_finalitzacio": 0,
+        "intents_enderroc": 0,
+        "guard_pulls": 0,
+        "reversions": 0,
+        "escapades": 0,
+    }
+
+
+def _default_combat_stats() -> dict:
+    return {
+        "temps_per_posicio": [],
+        "temps_dominant_total": {
+            "oponent_1": 0,
+            "oponent_2": 0,
+        },
+        "temps_defensiu_total": {
+            "oponent_1": 0,
+            "oponent_2": 0,
+        },
+        "temps_neutral_total": 0,
+        "canvis_control": 0,
+        "intents_finalitzacio": {
+            "oponent_1": 0,
+            "oponent_2": 0,
+        },
+        "intents_enderroc": {
+            "oponent_1": 0,
+            "oponent_2": 0,
+        },
+        "guard_pulls": {
+            "oponent_1": 0,
+            "oponent_2": 0,
+        },
+        "reversions": {
+            "oponent_1": 0,
+            "oponent_2": 0,
+        },
+        "escapades": {
+            "oponent_1": 0,
+            "oponent_2": 0,
+        },
+    }
 
 def _strip_code_fences(text: str) -> str:
     cleaned = text.strip()
     cleaned = re.sub(r"^```json\s*", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"^```\s*", "", cleaned)
     cleaned = re.sub(r"\s*```$", "", cleaned)
-    return cleaned.strip()
 
+    cleaned = cleaned.replace("\\'", "'")
+
+    return cleaned.strip()
 
 def _extract_json_object(text: str) -> str:
     start = text.find("{")
@@ -166,7 +272,8 @@ def _normalize_timeline_event(event: dict) -> dict:
 
 
 def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
-    fallback = _default_response(profile)
+    analysis_type = _analysis_type(profile, mode)
+    fallback = _default_response(profile, mode)
 
     if not text or not text.strip():
         fallback["incerteses"] = ["Resposta buida del model"]
@@ -177,22 +284,47 @@ def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
 
     try:
         data = json.loads(cleaned)
-        result = _default_response(profile)
+        if not isinstance(data, dict):
+            fallback["incerteses"] = ["La resposta del model no és un objecte JSON"]
+            return fallback
+
+        result = _default_response(profile, mode)
+
+        result["mode"] = mode
+        result["perfil"] = profile
+        result["analysis_type"] = analysis_type
+        result["selected_oponent_id"] = data.get(
+            "selected_oponent_id",
+            result["selected_oponent_id"],
+        )
+
+        if mode == "full_fight":
+            result["selected_oponent_id"] = "desconegut"
 
         if isinstance(data.get("combat_info"), dict):
+            combat_info = data["combat_info"]
             result["combat_info"] = {
-                "oponents": data["combat_info"].get("oponents", result["combat_info"]["oponents"]),
-                "durada_estimada": data["combat_info"].get("durada_estimada", "00:00"),
-                "nivell_confianca_global": data["combat_info"].get("nivell_confianca_global", "baixa"),
+                "oponents": combat_info.get(
+                    "oponents",
+                    result["combat_info"]["oponents"],
+                ),
+                "durada_estimada": combat_info.get("durada_estimada", "00:00"),
+                "nivell_confianca_global": combat_info.get(
+                    "nivell_confianca_global",
+                    "baixa",
+                ),
             }
 
         if isinstance(data.get("resum_partit"), dict):
+            resum = data["resum_partit"]
             result["resum_partit"] = {
-                "guanyador": data["resum_partit"].get("guanyador", result["resum_partit"]["guanyador"]),
-                "perdedor": data["resum_partit"].get("perdedor", result["resum_partit"]["perdedor"]),
-                "metode": data["resum_partit"].get("metode", "desconegut"),
-                "tipus_submissio": data["resum_partit"].get("tipus_submissio", "desconegut"),
-                "resum_breu": data["resum_partit"].get("resum_breu", ""),
+                "guanyador": resum.get(
+                    "guanyador",
+                    result["resum_partit"]["guanyador"],
+                ),
+                "metode": resum.get("metode", "desconegut"),
+                "tipus_submissio": resum.get("tipus_submissio", "desconegut"),
+                "resum_breu": resum.get("resum_breu", ""),
             }
 
         raw_timeline = data.get("timeline", [])
@@ -203,39 +335,36 @@ def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
                 if isinstance(event, dict)
             ]
 
-        result["analisi_oponents"] = data.get("analisi_oponents", result["analisi_oponents"])
-        result["estadistiques_estimades"] = data.get(
-            "estadistiques_estimades",
-            result["estadistiques_estimades"],
-        )
-        result["patrons_globals"] = data.get("patrons_globals", result["patrons_globals"])
-        result["incerteses"] = data.get("incerteses", [])
-        result["perfil"] = profile
-        result["mode"] = data.get("mode", mode)
-        result["selected_oponent_id"] = data.get("selected_oponent_id", "desconegut")
+        if "incerteses" in data and isinstance(data["incerteses"], list):
+            result["incerteses"] = data["incerteses"]
 
-        if mode == "single_athlete":
-            result["analisi_lluitador"] = data.get("analisi_lluitador")
+        if analysis_type in {"auto_analisi", "analisi_alumne"}:
+            if isinstance(data.get("analisi_lluitador"), dict):
+                result["analisi_lluitador"] = data["analisi_lluitador"]
 
-            if result["analisi_lluitador"] is None and isinstance(data.get("analisi_oponents"), dict):
-                selected_id = result["selected_oponent_id"]
-
-                if selected_id in ["oponent_1", "oponent_2"]:
-                    result["analisi_lluitador"] = data["analisi_oponents"].get(selected_id)
-
-                if result["analisi_lluitador"] is None:
-                    result["analisi_lluitador"] = (
-                        data["analisi_oponents"].get("oponent_1")
-                        or data["analisi_oponents"].get("oponent_2")
-                    )
+            if analysis_type == "analisi_alumne":
+                if isinstance(data.get("estadistiques_estimades"), dict):
+                    result["estadistiques_estimades"] = data["estadistiques_estimades"]
 
             result.pop("analisi_oponents", None)
+            result.pop("lectura_global", None)
 
-        else:
-            result["analisi_oponents"] = data.get(
-                "analisi_oponents",
-                result["analisi_oponents"],
-            )
+            if analysis_type == "auto_analisi":
+                result.pop("estadistiques_estimades", None)
+
+        elif analysis_type in {"combat_lluitador", "combat_entrenador"}:
+            if isinstance(data.get("analisi_oponents"), dict):
+                result["analisi_oponents"] = data["analisi_oponents"]
+
+            if isinstance(data.get("lectura_global"), dict):
+                result["lectura_global"] = data["lectura_global"]
+
+            if analysis_type == "combat_entrenador":
+                if isinstance(data.get("estadistiques_estimades"), dict):
+                    result["estadistiques_estimades"] = data["estadistiques_estimades"]
+            else:
+                result.pop("estadistiques_estimades", None)
+
             result.pop("analisi_lluitador", None)
 
         return result
@@ -245,7 +374,7 @@ def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
         print("EXCEPCIÓ:", str(e))
         fallback["incerteses"] = [cleaned]
         return fallback
-
+    
 def _wait_until_file_is_active(file_name: str, timeout_seconds: int = 180) -> None:
     """
     Espera fins que el fitxer pujat estigui preparat per a ser utilitzat (en estat ACTIVE). 
@@ -341,13 +470,11 @@ def analyze_video(
 
     parsed = _safe_parse_response(response.text, profile, mode)
     
-    if parsed.get("timeline"):
+    analysis_type = _analysis_type(profile, mode)
+
+    if profile == "entrenador" and parsed.get("timeline"):
         parsed["estadistiques_derivades"] = derive_stats_from_timeline(parsed["timeline"])
     else:
-        parsed["estadistiques_derivades"] = {
-            "temps_per_posicio": [],
-            "temps_dominant_per_lluitador": {},
-            "canvis_control_recalculats": 0,
-        }
+        parsed.pop("estadistiques_derivades", None)
 
     return parsed
