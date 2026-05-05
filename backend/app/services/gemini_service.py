@@ -472,9 +472,15 @@ def analyze_video(
     
     analysis_type = _analysis_type(profile, mode)
 
-    if profile == "entrenador" and parsed.get("timeline"):
-        parsed["estadistiques_derivades"] = derive_stats_from_timeline(parsed["timeline"])
+    if profile == "entrenador" and mode == "full_fight" and parsed.get("timeline"):
+        clean_stats = derive_stats_from_timeline(parsed["timeline"])
+
+        parsed["estadistiques_estimades"]["temps_per_posicio"] = clean_stats[
+            "temps_per_posicio"
+        ]
+
+        parsed["estadistiques_derivades"] = clean_stats
     else:
         parsed.pop("estadistiques_derivades", None)
-
+    
     return parsed

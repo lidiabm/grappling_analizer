@@ -32,8 +32,8 @@ def build_prompt(
         ]
 
         return "\n".join(part.strip() for part in parts if part.strip())
- 
-    elif analysis_type == "analisi_alumne": 
+
+    elif analysis_type == "analisi_alumne":
         parts = [
             _base_rules(),
             _profile_rules(profile),
@@ -45,7 +45,7 @@ def build_prompt(
         ]
 
         return "\n".join(part.strip() for part in parts if part.strip())
-    
+
     elif analysis_type == "combat_lluitador":
         parts = [
             _base_rules(),
@@ -65,6 +65,7 @@ def build_prompt(
         return "\n".join(part.strip() for part in parts if part.strip())
 
     raise ValueError(f"Tipus d'anàlisi no implementat: {analysis_type}")
+
 
 def _base_rules() -> str:
     return """
@@ -167,7 +168,6 @@ Regles del timeline:
 - "rellevancia" ha de ser un enter entre 1 i 5.
 - "confianca" ha de ser "alta", "mitjana" o "baixa".
 - Si hi ha tall de càmera, obstacle visual o pèrdua parcial de l’acció, marca confiança baixa o mitjana i explica-ho a "incerteses".
-
 """
 
 
@@ -207,6 +207,7 @@ Evita:
 - recomanacions vagues.
 """
 
+
 def _auto_analisi_rules(
     athlete_identifier_type: str | None,
     athlete_identifier_value: str | None,
@@ -243,6 +244,7 @@ Evita:
 - fer recomanacions genèriques.
 """
 
+
 def _alumne_analisi_rules(
     athlete_identifier_type: str | None,
     athlete_identifier_value: str | None,
@@ -262,23 +264,34 @@ Regles:
 - "selected_oponent_id" ha de ser "oponent_1", "oponent_2" o "desconegut".
 - Escriu sobre l’alumne en tercera persona.
 - No parlis directament a l’alumne.
-- L’anàlisi ha d’estar centrada només en l’alumne seleccionat.
+- L’anàlisi tècnica textual ha d’estar centrada en l’alumne seleccionat.
+- Les estadístiques han de cobrir sempre els dos oponents per permetre comparació.
 - Prioritza lectura posicional, cadenes tècniques, patrons tàctics i relacions causa-efecte.
 - Distingueix errors puntuals de patrons repetits.
 - Relaciona cada error important amb una conseqüència observable.
 - L’altre lluitador només s’ha d’esmentar quan sigui necessari per explicar una acció de l’alumne.
 
 Estadístiques:
-- Inclou obligatòriament "estadistiques_estimades".
-- Les estadístiques han d’estar centrades en l’alumne seleccionat.
-- Les estadístiques han de ser estimacions visuals coherents amb el timeline.
-- No inventis dades si no es poden estimar visualment; utilitza 0, [] o "incert" segons correspongui.
-- "temps_per_posicio" ha de permetre generar gràfics de temps per posició.
-- "temps_dominant_total", "temps_defensiu_total" i "temps_neutral_total" han de permetre comparar domini, defensa i neutralitat.
-- "percentatge" ha de ser aproximat i coherent amb els segons estimats.
-- La suma dels percentatges de "temps_per_posicio" ha d’aproximar-se a 100.
-- "canvis_control", "intents_finalitzacio", "intents_enderroc", "guard_pulls", "reversions" i "escapades" han de comptar només accions observables.
-- Si una acció és dubtosa, no la comptis o marca la incertesa a "incerteses".
+- Inclou estadístiques estimades del combat complet per generar gràfics comparatius.
+- Les estadístiques han de comparar sempre "oponent_1" i "oponent_2", encara que l’anàlisi textual se centri en l’alumne seleccionat.
+- "temps_per_posicio" NO ha de duplicar el mateix tram per als dos oponents.
+- Cada tram temporal del combat només pot comptar una vegada.
+- Si hi ha un controlador clar, assigna "lluitador" al controlador: "oponent_1" o "oponent_2".
+- Si no hi ha controlador clar, assigna "lluitador": "desconegut".
+- No creïs una fila defensiva mirall per l’altre oponent.
+- Exemple incorrecte: oponent_1 side_control_top 10s i oponent_2 side_control_bottom 10s.
+- Exemple correcte: oponent_1 side_control_top 10s dominant true.
+- En posicions neutrals com "standing", "scramble" o "other", només crea una fila amb "lluitador": "desconegut" si no hi ha control clar.
+- Els segons totals de "temps_per_posicio" no han de superar la durada estimada del combat.
+- Els percentatges de "temps_per_posicio" han de sumar aproximadament 100 en total, no 100 per cada oponent.
+- "temps_dominant_total" ha de ser un objecte amb "oponent_1" i "oponent_2".
+- "temps_dominant_total" ha de sumar només temps amb control clar.
+- "temps_defensiu_total" ha de ser un objecte amb "oponent_1" i "oponent_2".
+- "temps_defensiu_total" ha de ser el temps en què cada oponent està clarament en situació inferior o defensiva.
+- "temps_neutral_total" ha de sumar trams sense controlador clar.
+- "intents_finalitzacio", "intents_enderroc", "guard_pulls", "reversions" i "escapades" han de ser objectes amb "oponent_1" i "oponent_2".
+- Les accions comptades han de ser observables.
+- Si una dada és dubtosa, marca-la a "incerteses".
 
 Criteri tècnic:
 - Analitza control postural, gestió de distància, grips, frames, underhooks, inside position, pressió, timing, direcció de força, transicions, estabilització, escapes i exposició a finalitzacions quan siguin observables.
@@ -287,8 +300,9 @@ Criteri tècnic:
 - En scrambles, valora presa de decisions, orientació corporal i capacitat de sortir amb control.
 
 Coherència d’identitat:
-- Si "selected_oponent_id" és "oponent_1", totes les frases de "analisi_lluitador" i "estadistiques_estimades" han de referir-se a "oponent_1".
-- Si "selected_oponent_id" és "oponent_2", totes les frases de "analisi_lluitador" i "estadistiques_estimades" han de referir-se a "oponent_2".
+- Si "selected_oponent_id" és "oponent_1", totes les frases de "analisi_lluitador" han de referir-se a "oponent_1".
+- Si "selected_oponent_id" és "oponent_2", totes les frases de "analisi_lluitador" han de referir-se a "oponent_2".
+- "estadistiques_estimades" ha de comparar sempre "oponent_1" i "oponent_2", encara que l’anàlisi textual se centri en l’alumne seleccionat.
 - No atribueixis accions de l’altre oponent a l’alumne seleccionat.
 - Si hi ha dubte sobre la identitat, posa "selected_oponent_id": "desconegut" i explica-ho a "incerteses".
 
@@ -296,9 +310,10 @@ Evita:
 - parlar en segona persona.
 - donar consells motivacionals.
 - fer recomanacions genèriques.
-- analitzar els dos lluitadors per igual.
+- analitzar els dos lluitadors per igual en l’anàlisi textual.
 - incloure estadístiques que no siguin estimables a partir del vídeo.
 """
+
 
 def _combat_lluitador_rules() -> str:
     return """
@@ -324,6 +339,7 @@ Evita:
 - recomanacions massa generals.
 """
 
+
 def _combat_entrenador_rules() -> str:
     return """
 Objectiu:
@@ -341,6 +357,19 @@ Regles:
 - No parlis directament a cap lluitador.
 - No incloguis "analisi_lluitador".
 
+Regla crítica de no duplicació:
+- "temps_per_posicio" representa el temps real del combat, no el temps individual de cada lluitador.
+- Està prohibit crear dues files per al mateix interval temporal.
+- Està prohibit crear parelles mirall com:
+  - oponent_1 side_control_top 15s + oponent_2 side_control_bottom 15s
+  - oponent_1 mount_top 10s + oponent_2 mount_bottom 10s
+  - oponent_1 standing 45s + oponent_2 standing 45s
+- En cada posició controlada, només registra el lluitador que controla.
+- El lluitador defensiu NO s’ha d’afegir a "temps_per_posicio".
+- En standing, scramble o other sense control clar, utilitza una única fila amb "lluitador": "desconegut".
+- La suma de tots els "segons" dins "temps_per_posicio" ha de ser igual o inferior a la durada estimada del combat.
+- Si la suma supera la durada estimada, el JSON és incorrecte.
+
 Estadístiques:
 - Les estadístiques han de comparar els dos oponents.
 - "temps_per_posicio" ha d’incloure el camp "lluitador".
@@ -354,6 +383,7 @@ Evita:
 - convertir-ho en un pla d’entrenament.
 - incloure estadístiques no estimables visualment.
 """
+
 
 def _schema_start(mode: str, profile: str) -> str:
     selected = "desconegut" if mode == "full_fight" else "oponent_1|oponent_2|desconegut"
@@ -406,6 +436,7 @@ def _schema_start(mode: str, profile: str) -> str:
   ],
 """
 
+
 def _analisi_propi_schema() -> str:
     return """
 {
@@ -439,6 +470,7 @@ def _analisi_propi_schema() -> str:
   ]
 }
 """
+
 
 def _analisi_alumne_schema() -> str:
     return """
@@ -479,6 +511,7 @@ def _analisi_alumne_schema() -> str:
 }
 """
 
+
 def _analisi_oponent_general_schema() -> str:
     return """
 {
@@ -503,6 +536,7 @@ def _analisi_oponent_general_schema() -> str:
   "resum_rendiment": "string"
 }
 """
+
 
 def _analisi_oponent_general_entrenador_schema() -> str:
     return """
@@ -533,28 +567,10 @@ def _analisi_oponent_general_entrenador_schema() -> str:
 }
 """
 
+
 def _estadistiques_alumne_schema() -> str:
-    return """
-{
-  "temps_per_posicio": [
-    {
-      "posicio": "standing|closed_guard_top|closed_guard_bottom|open_guard_top|open_guard_bottom|half_guard_top|half_guard_bottom|side_control_top|side_control_bottom|mount_top|mount_bottom|back_control_top|back_control_bottom|turtle_top|turtle_bottom|scramble|other",
-      "segons": 0,
-      "percentatge": 0,
-      "dominant": false
-    }
-  ],
-  "temps_dominant_total": 0,
-  "temps_defensiu_total": 0,
-  "temps_neutral_total": 0,
-  "canvis_control": 0,
-  "intents_finalitzacio": 0,
-  "intents_enderroc": 0,
-  "guard_pulls": 0,
-  "reversions": 0,
-  "escapades": 0
-}
-"""
+    return _estadistiques_combat_entrenador_schema()
+
 
 def _estadistiques_combat_entrenador_schema() -> str:
     return """
@@ -562,7 +578,7 @@ def _estadistiques_combat_entrenador_schema() -> str:
   "temps_per_posicio": [
     {
       "lluitador": "oponent_1|oponent_2|desconegut",
-      "posicio": "standing|closed_guard_top|closed_guard_bottom|open_guard_top|open_guard_bottom|half_guard_top|half_guard_bottom|side_control_top|side_control_bottom|mount_top|mount_bottom|back_control_top|back_control_bottom|turtle_top|turtle_bottom|scramble|other",
+      "posicio": "standing|closed_guard|open_guard|half_guard|side_control|mount|back_control|turtle|scramble|other",
       "segons": 0,
       "percentatge": 0,
       "dominant": false
@@ -601,6 +617,7 @@ def _estadistiques_combat_entrenador_schema() -> str:
 }
 """
 
+
 def _single_athlete_schema(profile: str) -> str:
     if profile == "lluitador":
         return f"""
@@ -614,7 +631,7 @@ Restriccions finals:
 - Inclou obligatòriament "analisi_lluitador".
 - No afegeixis cap camp fora d’aquest esquema.
 """
-    
+
     if profile == "entrenador":
         return f"""
 Format exacte de sortida:
@@ -627,11 +644,14 @@ Format exacte de sortida:
 Restriccions finals:
 - Inclou obligatòriament "analisi_lluitador".
 - Inclou obligatòriament "estadistiques_estimades".
-- Les estadístiques han d’estar centrades en l’alumne seleccionat.
+- L’anàlisi tècnica textual ha d’estar centrada en l’alumne seleccionat.
+- Les estadístiques han de cobrir sempre els dos oponents per permetre comparació.
+- "temps_dominant_total", "temps_defensiu_total", "intents_finalitzacio", "intents_enderroc", "guard_pulls", "reversions" i "escapades" han de ser objectes amb "oponent_1" i "oponent_2".
 - No afegeixis cap camp fora d’aquest esquema.
 """
     return ""
-    
+
+
 def _full_fight_schema(profile: str) -> str:
     if profile == "lluitador":
         block = _analisi_oponent_general_schema()

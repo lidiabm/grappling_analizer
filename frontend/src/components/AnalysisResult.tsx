@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { AnalysisResponse, UserProfile } from "../types";
 import "./AnalysisResult.css";
 import SaveAnalysisModal from "./SaveAnalysis";
+import StatsCharts from "./StatsCharts";
 
 type Props = {
   result: AnalysisResponse | null;
@@ -531,8 +532,7 @@ export default function AnalysisResult({
 
       {renderLecturaGlobal(data.lectura_global)}
 
-      {showStats && renderStats(data.estadistiques_estimades)}
-
+      {showStats && <StatsCharts stats={data.estadistiques_estimades} />}
       {data.incerteses?.length > 0 && (
         <div className="analysis-card">
           <h3 className="analysis-card-title">Incerteses</h3>
