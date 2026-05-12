@@ -65,6 +65,10 @@ function LluitadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
             onClick={() => onSelectFeature("lluitador-evolution")}
           >
             <span className="selection-button-title">Evolució</span>
+            <span className="selection-button-text">
+              Consulta la teva progressió a partir dels combats guardats: domini,
+              defensa, accions clau, patrons recurrents i prioritats de millora.
+            </span>
           </button>
 
           <button

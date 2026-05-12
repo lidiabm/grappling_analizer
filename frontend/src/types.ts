@@ -1,8 +1,16 @@
+/* =========================
+   CORE TYPES
+========================= */
+
 export type UserProfile = "lluitador" | "entrenador";
 export type OponentId = "oponent_1" | "oponent_2" | "desconegut";
 export type Confianca = "alta" | "mitjana" | "baixa";
 
 export type AnalysisMode = "full_fight" | "single_athlete";
+
+/* =========================
+   REQUEST
+========================= */
 
 export type AthleteIdentifierType =
   | "visual_description"
@@ -19,6 +27,10 @@ export interface AnalysisRequest {
   mode: AnalysisMode;
   athlete_identifier?: AthleteIdentifier;
 }
+
+/* =========================
+   COMBAT STRUCTURE
+========================= */
 
 export interface OponentInfo {
   id: "oponent_1" | "oponent_2";
@@ -56,6 +68,10 @@ export interface TimelineEvent {
   confianca: Confianca;
 }
 
+/* =========================
+   ANALYSIS CONTENT
+========================= */
+
 export interface ErrorDetallat {
   error: string;
   moment_aproximat: string;
@@ -90,6 +106,10 @@ export interface AnalisiOponents {
   oponent_2: AnalisiOponent;
 }
 
+/* =========================
+   STATS
+========================= */
+
 export interface TempsPerPosicio {
   lluitador: string;
   posicio: string;
@@ -99,10 +119,18 @@ export interface TempsPerPosicio {
 
 export interface EstadistiquesEstimades {
   temps_per_posicio: TempsPerPosicio[];
+
+  temps_dominant_total?: Record<string, number>;
+  temps_defensiu_total?: Record<string, number>;
+  temps_neutral_total?: number;
+
   canvis_control: number;
-  intents_finalitzacio: number;
-  intents_enderroc: number;
-  guard_pulls: number;
+
+  intents_finalitzacio: number | Record<string, number>;
+  intents_enderroc: number | Record<string, number>;
+  guard_pulls: number | Record<string, number>;
+  reversions?: number | Record<string, number>;
+  escapades?: number | Record<string, number>;
 }
 
 export interface EstadistiquesDerivades {
@@ -117,15 +145,9 @@ export interface PatronsGlobals {
   resum_comparable: string[];
 }
 
-export type SavedAnalysis = {
-  id: string;
-  title: string;
-  createdAt: string;
-  fightId: string;
-  profileType: UserProfile;
-  studentFolder?: string;
-  result: AnalysisResponse;
-};
+/* =========================
+   RESPONSES
+========================= */
 
 export interface FullFightAnalysisResponse {
   mode: "full_fight";
@@ -154,4 +176,71 @@ export interface SingleAthleteAnalysisResponse {
   perfil: UserProfile;
 }
 
-export type AnalysisResponse = any;
+export type AnalysisResponse =
+  | FullFightAnalysisResponse
+  | SingleAthleteAnalysisResponse;
+
+/* =========================
+   STORAGE
+========================= */
+
+export type SavedAnalysis = {
+  id: string;
+  title: string;
+  createdAt: string;
+  fightId: string;
+  profileType: UserProfile;
+  studentFolder?: string;
+  result: AnalysisResponse;
+};
+
+/* =========================
+   EVOLUTION / TRAINING FOCUS
+========================= */
+export type EvolutionMetric = {
+  fightId: string;
+  label: string;
+  dominantTime: number;
+  defensiveTime: number;
+  neutralTime: number;
+  totalFightTime: number;
+  dominantPct: number;
+  defensivePct: number;
+  neutralPct: number;
+  submissionAttempts: number;
+  takedownAttempts: number;
+  guardPulls: number;
+  reversals: number;
+  escapes: number;
+};
+
+export type PositionTotal = {
+  name: string;
+  segons: number;
+};
+
+export type StudentFocus = {
+  studentName: string;
+  analysesCount: number;
+  metrics: EvolutionMetric[];
+  positionTotals: PositionTotal[];
+  summary: {
+    dominantChange: number;
+    defensiveChange: number;
+    submissionChange: number;
+    evolutionText: string;
+    mainFocus: string;
+  };
+};
+
+export type TrainingFocusResponse = {
+  studentsCount: number;
+  analysesCount: number;
+  recentCount: number;
+  chartWeeks: number;
+  focusWeeks: number;
+  globalMetrics: EvolutionMetric[];
+  globalPositionTotals: PositionTotal[];
+  globalFocus: string[];
+  students: StudentFocus[];
+};

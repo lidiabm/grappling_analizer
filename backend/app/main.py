@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 # from app.schemas.analysis import AnalysisResponse, SingleAthleteAnalysisResponse
 from app.services.gemini_service import analyze_video
+from app.services.training_focus_service import build_training_focus_response
 
 app = FastAPI(title="Grappling Analyzer API")
 
@@ -116,3 +117,19 @@ async def analyze(
             status_code=500,
             detail=f"Error analitzant vídeo: {message}",
         )
+    
+@app.post("/training-focus")
+async def training_focus(payload: dict):
+    print("ENTRA EN /training-focus")
+    print("Payload keys:", payload.keys())
+
+    analyses = payload.get("analyses")
+    print("Num analyses:", len(analyses) if isinstance(analyses, list) else "NO LIST")
+
+    if not isinstance(analyses, list):
+        raise HTTPException(
+            status_code=400,
+            detail="El camp 'analyses' ha de ser una llista.",
+        )
+
+    return build_training_focus_response(analyses)

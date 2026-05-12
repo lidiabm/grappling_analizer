@@ -1,0 +1,38 @@
+.evolution-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.evolution-card {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.evolution-card span {
+  display: block;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.evolution-card strong {
+  display: block;
+  font-size: 1.65rem;
+  line-height: 1.2;
+  color: #f8fafc;
+}
+
+.evolution-card-wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 700px) {
+  .evolution-card-wide {
+    grid-column: span 1;
+  }
+}

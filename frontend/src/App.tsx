@@ -8,6 +8,7 @@ import EntrenadorMenuScreen from "./screens/EntrenadorMenuScreen";
 import AnalysisScreen from "./screens/AnalysisScreen";
 import PlaceholderScreen from "./screens/PlaceholderScreen";
 import HistoryScreen from "./screens/HistoryScreen";
+import EntrenadorTrainingFocusScreen from "./screens/EntrenadorTrainingFocusScreen";
 
 type Screen =
   | "home"
@@ -18,12 +19,14 @@ type Screen =
   | "lluitador-evolution"
   | "lluitador-history"
   | "entrenador-analysis"
-  | "entrenador-training_focus"
+  | "entrenador-training-focus"
   | "entrenador-scouting"
   | "entrenador-athletes";
 
 function App() {
   const [screen, setScreen] = useState<Screen>("home");
+
+  console.log("SCREEN ACTUAL:", screen);
 
   function handleGoHome() {
     setScreen("home");
@@ -107,10 +110,9 @@ function App() {
           />
         );
 
-      case "entrenador-training_focus":
+      case "entrenador-training-focus":
         return (
-          <PlaceholderScreen
-            title="Focus d’entrenament"
+          <EntrenadorTrainingFocusScreen
             onBack={() => setScreen("entrenador-menu")}
           />
         );
@@ -133,7 +135,12 @@ function App() {
         );
 
       default:
-        return null;
+        return (
+          <div className="analysis-card">
+            <h2>Pantalla no trobada</h2>
+            <p>{screen}</p>
+          </div>
+        );
     }
   }
 

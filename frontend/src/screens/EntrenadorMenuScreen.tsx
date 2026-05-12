@@ -4,7 +4,7 @@ type Props = {
   onSelectFeature: (
     feature:
       | "entrenador-analysis"
-      | "entrenador-training_focus"
+      | "entrenador-training-focus"
       | "entrenador-scouting"
       | "entrenador-athletes"
   ) => void;
@@ -52,9 +52,12 @@ function EntrenadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
           <button
             type="button"
             className="selection-button"
-            onClick={() => onSelectFeature("entrenador-training_focus")}
+            onClick={() => onSelectFeature("entrenador-training-focus")}
           >
-            Focus d’entrenament
+            <span className="selection-button-title">Focus d’entrenament</span>
+            <span className="selection-button-text">
+              Detecta l’evolució real dels teus alumnes a partir de les seves dades. 
+            </span>
           </button>
 
           <button
