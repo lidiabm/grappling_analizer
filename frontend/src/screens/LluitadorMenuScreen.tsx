@@ -57,6 +57,9 @@ function LluitadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
             onClick={() => onSelectFeature("lluitador-scouting")}
           >
             <span className="selection-button-title">Scouting d’oponent</span>
+            <span className="selection-button-text">
+              Puja vídeos del teu proper rival i rep una anàlisi clara dels seus punts forts, febleses i pla de combat recomanat.
+            </span>
           </button>
 
           <button

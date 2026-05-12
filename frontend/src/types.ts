@@ -244,3 +244,61 @@ export type TrainingFocusResponse = {
   globalFocus: string[];
   students: StudentFocus[];
 };
+
+/* =========================
+   SCOUTING
+========================= */
+
+export interface ScoutingRivalInfo {
+  nom_visible: string;
+  descripcio_visual: string;
+  nivell_confianca_global: Confianca;
+}
+
+export interface InformeLluitadorScouting {
+  amenaces_principals: string[];
+  debilitats_a_explotar: string[];
+  que_evitar: string[];
+  pla_combat: string[];
+  consells_clau: string[];
+  missatge_final: string;
+}
+
+export interface InformeEntrenadorScouting {
+  model_de_combat: string;
+  patrons_ofensius: string[];
+  patrons_defensius: string[];
+  situacions_on_puntua: string[];
+  situacions_on_queda_exposat: string[];
+  pla_tactic_recomanat: string[];
+  focus_entrenament: string[];
+  exercicis_recomanats: string[];
+  riscos_principals: string[];
+}
+
+export interface BaseScoutingResponse {
+  mode: "scouting";
+  perfil: UserProfile;
+  rival_info: ScoutingRivalInfo;
+  resum_rival: string;
+  patrons_recurrents: string[];
+  punts_forts: string[];
+  debilitats: string[];
+  incerteses: string[];
+}
+
+export interface LluitadorScoutingResponse extends BaseScoutingResponse {
+  perfil: "lluitador";
+  analysis_type: "scouting_lluitador";
+  informe_lluitador: InformeLluitadorScouting;
+}
+
+export interface EntrenadorScoutingResponse extends BaseScoutingResponse {
+  perfil: "entrenador";
+  analysis_type: "scouting_entrenador";
+  informe_entrenador: InformeEntrenadorScouting;
+}
+
+export type ScoutingResponse =
+  | LluitadorScoutingResponse
+  | EntrenadorScoutingResponse;

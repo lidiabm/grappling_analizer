@@ -9,6 +9,7 @@ import AnalysisScreen from "./screens/AnalysisScreen";
 import PlaceholderScreen from "./screens/PlaceholderScreen";
 import HistoryScreen from "./screens/HistoryScreen";
 import EntrenadorTrainingFocusScreen from "./screens/EntrenadorTrainingFocusScreen";
+import ScoutingScreen from "./screens/ScoutingScreen";
 
 type Screen =
   | "home"
@@ -87,8 +88,8 @@ function App() {
 
       case "lluitador-scouting":
         return (
-          <PlaceholderScreen
-            title="Scouting d’oponent"
+          <ScoutingScreen
+            profile="lluitador"
             onBack={() => setScreen("lluitador-menu")}
           />
         );
@@ -119,8 +120,8 @@ function App() {
 
       case "entrenador-scouting":
         return (
-          <PlaceholderScreen
-            title="Scouting"
+          <ScoutingScreen
+            profile="entrenador"
             onBack={() => setScreen("entrenador-menu")}
           />
         );

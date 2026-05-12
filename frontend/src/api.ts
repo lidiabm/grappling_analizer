@@ -3,6 +3,9 @@ import type {
   AnalysisResponse,
   SavedAnalysis,
   TrainingFocusResponse,
+  UserProfile,
+  ScoutingResponse,
+  ScoutingVideoInput,
 } from "./types";
 
 const API_BASE_URL = "http://localhost:8000";
@@ -56,6 +59,41 @@ export async function analyzeVideo(
   }
 
   const response = await fetch(`${API_BASE_URL}/analyze`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+export async function analyzeScoutingVideos(
+  videos: ScoutingVideoInput[],
+  profile: UserProfile
+): Promise<ScoutingResponse> {
+  const formData = new FormData();
+
+  formData.append("profile", profile);
+
+  videos.forEach((video) => {
+    formData.append("videos", video.file);
+  });
+
+  formData.append(
+    "video_descriptions",
+    JSON.stringify(
+      videos.map((video, index) => ({
+        index,
+        filename: video.file.name,
+        rival_description: video.rivalDescription,
+      }))
+    )
+  );
+
+  const response = await fetch(`${API_BASE_URL}/scouting`, {
     method: "POST",
     body: formData,
   });

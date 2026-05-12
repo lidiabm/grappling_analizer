@@ -65,7 +65,10 @@ function EntrenadorMenuScreen({ onSelectFeature, onSelectProfile }: Props) {
             className="selection-button"
             onClick={() => onSelectFeature("entrenador-scouting")}
           >
-            Scouting
+            <span className="selection-button-title">Scouting d’oponent</span>
+            <span className="selection-button-text">
+              Puja diversos vídeos d’un rival i genera un informe tàctic per preparar el combat dels teus alumnes.
+            </span>
           </button>
 
           <button
