@@ -45,6 +45,31 @@ def _default_response(profile: str) -> dict:
             "riscos_principals": [],
         }
 
+        base["estadistiques"] = {
+            "nota": "",
+            "nivell_fiabilitat_estadistica": "baixa",
+            "per_video": [],
+            "resum_global": {
+                "accions_mes_frequents": [],
+                "situacions_mes_repetides": [],
+                "zones_de_risc": [],
+                "tendencies_tactiques": [],
+                "patrons_amb_mes_evidencia": [],
+                "patrons_amb_poca_evidencia": [],
+            },
+            "perfil_numeric": {
+                "pressio": "desconegut",
+                "agressivitat": "desconegut",
+                "control_posicional": "desconegut",
+                "defensa": "desconegut",
+                "perill_submissio": "desconegut",
+                "explosivitat": "desconegut",
+                "adaptabilitat": "desconegut",
+            },
+        }
+
+        base["grafics_suggerits"] = []
+
     else:
         base["informe_lluitador"] = {
             "amenaces_principals": [],
@@ -106,7 +131,9 @@ def _safe_parse_response(text: str, profile: str) -> dict:
         return result
 
     except Exception:
-        fallback["incerteses"] = [cleaned]
+        fallback["incerteses"] = [
+            "No s'ha pogut parsejar la resposta del model com a JSON"
+        ]
         return fallback
 
 

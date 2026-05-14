@@ -429,9 +429,18 @@
 
 .scouting-result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
   gap: 20px;
   margin-bottom: 20px;
+}
+
+.scouting-result-grid-main,
+.scouting-result-grid-coach,
+.scouting-result-grid-fighter {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scouting-result-block-wide {
+  grid-column: 1 / -1;
 }
 
 .scouting-result-block {
@@ -469,28 +478,6 @@
   line-height: 1.7;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
-
-@media (max-width: 900px) {
-  .scouting-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .scouting-hero {
-    flex-direction: column;
-  }
-
-  .scouting-hero h2 {
-    font-size: 2rem;
-  }
-
-  .scouting-card {
-    padding: 22px;
-  }
-
-  .scouting-video-item {
-    flex-direction: column;
-  }
+.scouting-result-incerteses {
+  margin-top: 32px;
 }

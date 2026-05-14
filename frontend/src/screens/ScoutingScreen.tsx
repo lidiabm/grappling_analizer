@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { analyzeScoutingVideos } from "../api";
 import type { ScoutingResponse, ScoutingVideoInput } from "../types";
 import "./ScoutingScreen.css";
+import ScoutingCharts from "../components/ScoutingCharts";
+import ArrowLeftIcon from "../icons/ArrowLeftIcon";
 
 type Props = {
   profile: "entrenador" | "lluitador";
@@ -88,7 +90,15 @@ function ScoutingScreen({ profile, onBack }: Props) {
       setIsAnalyzing(true);
 
       const scoutingResult = await analyzeScoutingVideos(videos, profile);
+
       setResult(scoutingResult);
+      setVideos([]);
+      setSelectedFile(null);
+      setCurrentDescription("");
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -102,8 +112,12 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
   return (
     <section className="scouting-page">
-      <button type="button" className="scouting-back-button" onClick={onBack}>
-        ← Tornar
+      <button
+        type="button"
+        className="scouting-back-button"
+        onClick={onBack}
+      >
+        <ArrowLeftIcon size={18} />
       </button>
 
       <header className="scouting-hero">
@@ -172,7 +186,10 @@ function ScoutingScreen({ profile, onBack }: Props) {
                 type="button"
                 onClick={() => {
                   setSelectedFile(null);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
+
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                  }
                 }}
               >
                 Canviar
@@ -296,42 +313,58 @@ function ScoutingScreen({ profile, onBack }: Props) {
             <p>{result.resum_rival}</p>
           </div>
 
-          <div className="scouting-result-grid">
-            <ResultBlock title="Patrons recurrents" items={result.patrons_recurrents} />
+          <div className="scouting-result-grid scouting-result-grid-main">
+            <ResultBlock
+              title="Patrons recurrents"
+              items={result.patrons_recurrents}
+              wide
+            />
+
             <ResultBlock title="Punts forts" items={result.punts_forts} />
+
             <ResultBlock title="Debilitats" items={result.debilitats} />
           </div>
 
           {result.perfil === "entrenador" && (
-            <div className="scouting-result-grid">
-              <ResultBlock
-                title="Pla tàctic recomanat"
-                items={result.informe_entrenador.pla_tactic_recomanat}
-              />
-              <ResultBlock
-                title="Focus d’entrenament"
-                items={result.informe_entrenador.focus_entrenament}
-              />
-              <ResultBlock
-                title="Exercicis recomanats"
-                items={result.informe_entrenador.exercicis_recomanats}
-              />
-            </div>
+            <>
+              <div className="scouting-result-grid scouting-result-grid-coach">
+                <ResultBlock
+                  title="Pla tàctic recomanat"
+                  items={result.informe_entrenador.pla_tactic_recomanat}
+                  wide
+                />
+
+                <ResultBlock
+                  title="Focus d’entrenament"
+                  items={result.informe_entrenador.focus_entrenament}
+                />
+
+                <ResultBlock
+                  title="Exercicis recomanats"
+                  items={result.informe_entrenador.exercicis_recomanats}
+                />
+              </div>
+
+              <ScoutingCharts grafics={result.grafics_suggerits} />
+            </>
           )}
 
           {result.perfil === "lluitador" && (
-            <div className="scouting-result-grid">
+            <div className="scouting-result-grid scouting-result-grid-fighter">
               <ResultBlock
                 title="Amenaces principals"
                 items={result.informe_lluitador.amenaces_principals}
               />
+
               <ResultBlock
                 title="Què evitar"
                 items={result.informe_lluitador.que_evitar}
               />
+
               <ResultBlock
                 title="Pla de combat"
                 items={result.informe_lluitador.pla_combat}
+                wide
               />
 
               {result.informe_lluitador.missatge_final && (
@@ -344,7 +377,14 @@ function ScoutingScreen({ profile, onBack }: Props) {
           )}
 
           {result.incerteses.length > 0 && (
-            <ResultBlock title="Incerteses" items={result.incerteses} warning />
+            <div className="scouting-result-incerteses">
+              <ResultBlock
+                title="Incerteses"
+                items={result.incerteses}
+                warning
+                wide
+              />
+            </div>
           )}
         </section>
       )}
@@ -356,19 +396,23 @@ function ResultBlock({
   title,
   items,
   warning = false,
+  wide = false,
 }: {
   title: string;
   items: string[];
   warning?: boolean;
+  wide?: boolean;
 }) {
+  const className = [
+    "scouting-result-block",
+    warning ? "scouting-result-block-warning" : "",
+    wide ? "scouting-result-block-wide" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div
-      className={
-        warning
-          ? "scouting-result-block scouting-result-block-warning"
-          : "scouting-result-block"
-      }
-    >
+    <div className={className}>
       <h4>{title}</h4>
 
       {items.length > 0 ? (
