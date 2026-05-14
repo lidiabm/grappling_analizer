@@ -191,6 +191,7 @@ export type SavedAnalysis = {
   fightId: string;
   profileType: UserProfile;
   studentFolder?: string;
+  fightDate?: string;
   result: AnalysisResponse;
 };
 
@@ -297,8 +298,30 @@ export interface EntrenadorScoutingResponse extends BaseScoutingResponse {
   perfil: "entrenador";
   analysis_type: "scouting_entrenador";
   informe_entrenador: InformeEntrenadorScouting;
+  estadistiques: any;
+  grafics_suggerits: ScoutingChart[];
 }
 
 export type ScoutingResponse =
   | LluitadorScoutingResponse
   | EntrenadorScoutingResponse;
+
+export type ScoutingVideoInput = {
+  file: File;
+  rivalDescription: string;
+};
+
+export type ScoutingChartDatum = {
+  label: string;
+  valor: number | string;
+};
+
+export type ScoutingChart = {
+  id: string;
+  tipus: "barres" | "radar" | string;
+  titol: string;
+  descripcio?: string;
+  dades: ScoutingChartDatum[];
+  escala?: string;
+  interpretacio?: string;
+};

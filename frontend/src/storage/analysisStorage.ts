@@ -2,12 +2,41 @@ import type { SavedAnalysis } from "../types";
 
 const STORAGE_KEY = "savedAnalyses";
 
+function formatStudentName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeText(text: string) {
+  return text.trim().toLowerCase();
+}
+
+export function analysisTitleExists(title: string) {
+  const normalizedTitle = normalizeText(title);
+
+  return getSavedAnalyses().some(
+    (analysis) => normalizeText(analysis.title) === normalizedTitle
+  );
+}
+
 export function saveAnalysis(analysis: SavedAnalysis) {
   const current = getSavedAnalyses();
 
+  const normalizedAnalysis: SavedAnalysis = {
+    ...analysis,
+    title: analysis.title.trim(),
+    studentFolder: analysis.studentFolder
+      ? formatStudentName(analysis.studentFolder)
+      : undefined,
+  };
+
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify([analysis, ...current])
+    JSON.stringify([normalizedAnalysis, ...current])
   );
 }
 
@@ -17,7 +46,14 @@ export function getSavedAnalyses(): SavedAnalysis[] {
   if (!raw) return [];
 
   try {
-    return JSON.parse(raw);
+    const analyses: SavedAnalysis[] = JSON.parse(raw);
+
+    return analyses.sort((a, b) => {
+      const dateA = a.fightDate || a.createdAt;
+      const dateB = b.fightDate || b.createdAt;
+
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
   } catch {
     return [];
   }
@@ -25,7 +61,6 @@ export function getSavedAnalyses(): SavedAnalysis[] {
 
 export function deleteAnalysis(id: string) {
   const current = getSavedAnalyses();
-
   const updated = current.filter((analysis) => analysis.id !== id);
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));

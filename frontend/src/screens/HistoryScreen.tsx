@@ -306,7 +306,9 @@ function AnalysisList({
               <strong className="history-item-title">{analysis.title}</strong>
 
               <span className="history-item-date">
-                {new Date(analysis.createdAt).toLocaleString("ca-ES")}
+                {analysis.fightDate
+                  ? new Date(analysis.fightDate).toLocaleDateString("ca-ES")
+                  : "Sense data"}
               </span>
             </div>
           </button>
