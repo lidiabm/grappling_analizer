@@ -133,18 +133,6 @@
   line-height: 1.6;
 }
 
-.scouting-step {
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  background: rgba(239,68,68,0.12);
-  color: #ef4444;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-}
-
 /* =========================
    UPLOAD
 ========================= */

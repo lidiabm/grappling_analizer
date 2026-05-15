@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { AnalysisResponse, UserProfile, SavedAnalysis } from "../types";
 import { saveAnalysis, analysisTitleExists } from "../storage/analysisStorage";
-import "./SaveAnalysis.css";
+import "./SaveAnalysisModal.css";
 
 type Props = {
   open: boolean;

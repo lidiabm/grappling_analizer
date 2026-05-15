@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { AnalysisResponse, UserProfile } from "../types";
 import "./AnalysisResult.css";
-import SaveAnalysisModal from "./SaveAnalysis";
-import StatsCharts from "./StatsCharts";
+import SaveAnalysisModal from "./SaveAnalysisModal";
+import StatsCharts from "./charts/StatsCharts";
 
 type Props = {
   result: AnalysisResponse | null;

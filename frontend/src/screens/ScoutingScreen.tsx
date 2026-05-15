@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { analyzeScoutingVideos } from "../api";
 import type { ScoutingResponse, ScoutingVideoInput } from "../types";
 import "./ScoutingScreen.css";
-import ScoutingCharts from "../components/ScoutingCharts";
+import ScoutingCharts from "../components/charts/ScoutingCharts";
 import ArrowLeftIcon from "../icons/ArrowLeftIcon";
 
 type Props = {
@@ -131,8 +131,8 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
           <p>
             {isCoach
-              ? "Afegeix combats del rival, identifica quin atleta s’ha d’analitzar en cada vídeo i genera un informe tàctic orientat a preparar els teus esportistes."
-              : "Afegeix vídeos del teu rival, indica com identificar-lo i genera un pla de combat pràctic abans de competir."}
+              ? "Afegeix combats d’un rival per detectar patrons, punts forts i debilitats, i generar recomanacions tàctiques i exercicis per preparar els teus alumnes."
+              : "Afegeix vídeos del teu rival per identificar patrons repetits, amenaces principals i oportunitats concretes per construir el teu pla de combat."}
           </p>
         </div>
 
@@ -150,7 +150,6 @@ function ScoutingScreen({ profile, onBack }: Props) {
               <p>Selecciona un vídeo, descriu el rival i afegeix-lo a la llista.</p>
             </div>
 
-            <span className="scouting-step">01</span>
           </div>
 
           <label className="scouting-upload">
@@ -227,26 +226,28 @@ function ScoutingScreen({ profile, onBack }: Props) {
           <div className="scouting-card-header">
             <div>
               <h3>Què analitzarà?</h3>
-              <p>La IA compararà patrons repetits entre vídeos.</p>
+              <p>
+                {isCoach
+                  ? "La IA generarà informació útil per planificar la preparació dels teus esportistes."
+                  : "La IA generarà informació pràctica per ajudar-te a competir contra aquest rival."}
+              </p>
             </div>
-
-            <span className="scouting-step">02</span>
           </div>
 
           <ul className="scouting-check-list">
             {isCoach ? (
               <>
-                <li>Patrons ofensius i defensius del rival indicat.</li>
-                <li>Situacions on puntua o genera perill.</li>
-                <li>Errors recurrents explotables pels teus alumnes.</li>
-                <li>Focus d’entrenament i exercicis recomanats.</li>
+                <li>Patrons ofensius i defensius del rival.</li>
+                <li>Situacions on el rival genera més perill.</li>
+                <li>Debilitats explotables pels teus alumnes.</li>
+                <li>Pla tàctic, focus d’entrenament i exercicis recomanats.</li>
               </>
             ) : (
               <>
-                <li>Punts forts i punts febles del rival indicat.</li>
+                <li>Punts forts i amenaces principals del rival.</li>
                 <li>Accions que repeteix amb més freqüència.</li>
-                <li>Moments on sol exposar-se.</li>
-                <li>Pla de combat resumit i aplicable.</li>
+                <li>Errors o moments on es pot atacar.</li>
+                <li>Pla de combat resumit amb què fer i què evitar.</li>
               </>
             )}
           </ul>
@@ -258,10 +259,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
           <div className="scouting-card-header">
             <div>
               <h3>Vídeos afegits al scouting</h3>
-              <p>Aquests vídeos i descripcions s’enviaran al backend.</p>
             </div>
-
-            <span className="scouting-step">03</span>
           </div>
 
           <div className="scouting-video-list">

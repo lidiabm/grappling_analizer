@@ -11,6 +11,14 @@ function formatStudentName(name: string) {
     .join(" ");
 }
 
+function formatAnalysisTitle(title: string) {
+  const trimmed = title.trim();
+
+  if (!trimmed) return "";
+
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
 function normalizeText(text: string) {
   return text.trim().toLowerCase();
 }
@@ -28,7 +36,7 @@ export function saveAnalysis(analysis: SavedAnalysis) {
 
   const normalizedAnalysis: SavedAnalysis = {
     ...analysis,
-    title: analysis.title.trim(),
+    title: formatAnalysisTitle(analysis.title),
     studentFolder: analysis.studentFolder
       ? formatStudentName(analysis.studentFolder)
       : undefined,

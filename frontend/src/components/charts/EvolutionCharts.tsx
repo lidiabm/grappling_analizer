@@ -13,56 +13,20 @@ import {
   YAxis,
 } from "recharts";
 
-import type { EvolutionMetric, PositionTotal } from "../types";
+import {
+  CHART_COLORS,
+  formatPosition,
+  hasAnyValue,
+} from "./chartUtils";
+
+import "./Charts.css";
+
+import type { EvolutionMetric, PositionTotal } from "../../types";
 
 type Props = {
   metrics: EvolutionMetric[];
   positionTotals: PositionTotal[];
 };
-
-const COLORS = [
-  "#2563eb",
-  "#7c3aed",
-  "#0891b2",
-  "#059669",
-  "#ca8a04",
-  "#ea580c",
-  "#dc2626",
-  "#9333ea",
-  "#0d9488",
-  "#65a30d",
-  "#db2777",
-  "#475569",
-  "#b45309",
-  "#1d4ed8",
-  "#be123c",
-];
-
-function hasAnyValue<T extends Record<string, any>>(
-  data: T[],
-  keys: string[]
-) {
-  return data.some((item) =>
-    keys.some((key) => Number(item[key]) > 0)
-  );
-}
-
-function formatPosition(posicio: string) {
-  const labels: Record<string, string> = {
-    standing: "Standing",
-    scramble: "Scramble",
-    closed_guard: "Closed guard",
-    open_guard: "Open guard",
-    half_guard: "Half guard",
-    side_control: "Side control",
-    mount: "Mount",
-    back_control: "Back control",
-    turtle: "Turtle",
-    other: "Altres",
-  };
-
-  return labels[posicio] ?? posicio.replaceAll("_", " ");
-}
 
 export default function EvolutionCharts({
   metrics,
@@ -288,7 +252,7 @@ export default function EvolutionCharts({
                     <Cell
                       key={index}
                       fill={
-                        COLORS[index % COLORS.length]
+                        CHART_COLORS[index % CHART_COLORS.length]
                       }
                     />
                   ))}

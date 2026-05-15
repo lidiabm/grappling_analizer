@@ -1,11 +1,12 @@
 .stats-charts {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: 18px;
 }
 
-/* ===== CARDS ===== */
 .stats-chart-card {
+  min-width: 0;
   border: 1px solid rgba(201, 168, 106, 0.18);
   background:
     linear-gradient(
@@ -19,12 +20,10 @@
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
 }
 
-/* cards grandes (donut + acciones) */
 .stats-chart-card-large {
   grid-column: span 2;
 }
 
-/* ===== HEADER ===== */
 .stats-chart-header {
   margin-bottom: 14px;
 }
@@ -41,17 +40,27 @@
   margin-top: 4px;
   color: var(--text-muted);
   font-size: 0.82rem;
+  line-height: 1.4;
 }
 
-/* ===== CHART ===== */
 .stats-chart {
   width: 100%;
   min-height: 240px;
 }
 
-/* ===== RECHARTS ===== */
+.stats-chart-card p {
+  margin: 12px 0 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
 .recharts-cartesian-axis-tick text,
 .recharts-legend-item-text {
+  fill: var(--text-soft) !important;
+}
+
+.recharts-polar-angle-axis-tick-value {
   fill: var(--text-soft) !important;
 }
 
@@ -64,4 +73,14 @@
 
 .recharts-tooltip-label {
   color: var(--text) !important;
+}
+
+@media (max-width: 900px) {
+  .stats-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-chart-card-large {
+    grid-column: span 1;
+  }
 }

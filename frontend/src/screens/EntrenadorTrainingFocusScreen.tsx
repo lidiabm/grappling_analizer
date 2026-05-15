@@ -3,7 +3,7 @@ import "./LluitadorEvolutionScreen.css";
 import type { StudentFocus, TrainingFocusResponse } from "../types";
 import ArrowLeftIcon from "../icons/ArrowLeftIcon";
 import { getSavedAnalyses } from "../storage/analysisStorage";
-import EvolutionCharts from "../components/EvolutionCharts";
+import EvolutionCharts from "../components/charts/EvolutionCharts";
 import { calculateTrainingFocus } from "../api";
 
 type Props = {

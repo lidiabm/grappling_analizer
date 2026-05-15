@@ -10,78 +10,21 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import "./StatsCharts.css";
+
+import {
+  CHART_COLORS,
+  DEFENSE_COLORS,
+  FIGHTER_COLORS,
+  formatPosition,
+  hasAnyValue,
+  normalizeNumber,
+} from "./chartUtils";
+
+import "./Charts.css";
 
 type Props = {
   stats?: any;
 };
-
-const POSITION_COLORS = [
-  "#2563eb",
-  "#7c3aed",
-  "#0891b2",
-  "#059669",
-  "#ca8a04",
-  "#ea580c",
-  "#dc2626",
-  "#9333ea",
-  "#0f766e",
-];
-
-const FIGHTER_COLORS: Record<string, string> = {
-  oponent_1: "#2563eb",
-  oponent_2: "#dc2626",
-};
-
-const DEFENSE_COLORS: Record<string, string> = {
-  oponent_1: "#38bdf8",
-  oponent_2: "#fb7185",
-};
-
-function formatPosition(posicio?: string) {
-  if (!posicio) return "Desconeguda";
-
-  const labels: Record<string, string> = {
-    standing: "Standing",
-    scramble: "Scramble",
-    side_control: "Side control",
-    side_control_top: "Side control top",
-    side_control_bottom: "Side control bottom",
-    back_control: "Back control",
-    back_control_top: "Back control top",
-    back_control_bottom: "Back control bottom",
-    mount: "Mount",
-    mount_top: "Mount top",
-    mount_bottom: "Mount bottom",
-    closed_guard: "Closed guard",
-    closed_guard_top: "Closed guard top",
-    closed_guard_bottom: "Closed guard bottom",
-    open_guard: "Open guard",
-    open_guard_top: "Open guard top",
-    open_guard_bottom: "Open guard bottom",
-    half_guard: "Half guard",
-    half_guard_top: "Half guard top",
-    half_guard_bottom: "Half guard bottom",
-    turtle: "Turtle",
-    turtle_top: "Turtle top",
-    turtle_bottom: "Turtle bottom",
-    other: "Altres",
-  };
-
-  return labels[posicio] ?? posicio.replaceAll("_", " ");
-}
-
-function normalizeNumber(value: any) {
-  if (typeof value === "number") return value;
-
-  if (typeof value === "string") {
-    const cleaned = value.replace(",", ".").replace(/[^\d.-]/g, "");
-    const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  return 0;
-}
 
 function getByFighterOrGlobal(value: any, fighter: string) {
   if (value && typeof value === "object") {
@@ -102,12 +45,6 @@ function sumTempsPerLluitador(stats: any, fighter: string, dominant: boolean) {
         (total: number, item: any) => total + normalizeNumber(item.segons),
         0
       ) ?? 0
-  );
-}
-
-function hasAnyValue(data: any[], keys: string[]) {
-  return data.some((item) =>
-    keys.some((key) => normalizeNumber(item[key]) > 0)
   );
 }
 
@@ -136,6 +73,8 @@ export default function StatsCharts({ stats }: Props) {
 
     return {
       name: fighter,
+      color: FIGHTER_COLORS[fighter] ?? "#64748b",
+      defenseColor: DEFENSE_COLORS[fighter] ?? "#94a3b8",
       dominant:
         dominantDirect > 0
           ? dominantDirect
@@ -202,7 +141,7 @@ export default function StatsCharts({ stats }: Props) {
                   {positionData.map((_: any, index: number) => (
                     <Cell
                       key={index}
-                      fill={POSITION_COLORS[index % POSITION_COLORS.length]}
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
                     />
                   ))}
                 </Pie>
@@ -241,8 +180,24 @@ export default function StatsCharts({ stats }: Props) {
               <BarChart data={controlData}>
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={(value) => `${value}s`} />
+
                 <Tooltip
-                  formatter={(value: any) => [`${value}s`, "Temps dominant"]}
+                  contentStyle={{
+                    backgroundColor: "#111318",
+                    border: "1px solid rgba(201, 168, 106, 0.22)",
+                    borderRadius: "12px",
+                  }}
+                  labelStyle={{
+                    color: "#f5f7fa",
+                  }}
+                  formatter={(value: any, _name: any, item: any) => {
+                    const color = item?.payload?.color ?? "#f5f7fa";
+
+                    return [
+                      <span style={{ color }}>{value}s</span>,
+                      <span style={{ color }}>Temps dominant</span>,
+                    ];
+                  }}
                 />
 
                 <Bar
@@ -251,10 +206,7 @@ export default function StatsCharts({ stats }: Props) {
                   radius={[10, 10, 0, 0]}
                 >
                   {controlData.map((item) => (
-                    <Cell
-                      key={item.name}
-                      fill={FIGHTER_COLORS[item.name] ?? "#64748b"}
-                    />
+                    <Cell key={item.name} fill={item.color} />
                   ))}
                 </Bar>
               </BarChart>
@@ -275,8 +227,24 @@ export default function StatsCharts({ stats }: Props) {
               <BarChart data={controlData}>
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={(value) => `${value}s`} />
+
                 <Tooltip
-                  formatter={(value: any) => [`${value}s`, "Temps defensiu"]}
+                  contentStyle={{
+                    backgroundColor: "#111318",
+                    border: "1px solid rgba(201, 168, 106, 0.22)",
+                    borderRadius: "12px",
+                  }}
+                  labelStyle={{
+                    color: "#f5f7fa",
+                  }}
+                  formatter={(value: any, _name: any, item: any) => {
+                    const color = item?.payload?.defenseColor ?? "#f5f7fa";
+
+                    return [
+                      <span style={{ color }}>{value}s</span>,
+                      <span style={{ color }}>Temps defensiu</span>,
+                    ];
+                  }}
                 />
 
                 <Bar
@@ -285,10 +253,7 @@ export default function StatsCharts({ stats }: Props) {
                   radius={[10, 10, 0, 0]}
                 >
                   {controlData.map((item) => (
-                    <Cell
-                      key={item.name}
-                      fill={DEFENSE_COLORS[item.name] ?? "#94a3b8"}
-                    />
+                    <Cell key={item.name} fill={item.defenseColor} />
                   ))}
                 </Bar>
               </BarChart>

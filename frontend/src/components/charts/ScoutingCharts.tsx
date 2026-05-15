@@ -12,7 +12,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import "./StatsCharts.css";
+import "./Charts.css";
 
 type ChartDatum = {
   label: string;
