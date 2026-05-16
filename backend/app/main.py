@@ -7,10 +7,12 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-# from app.schemas.analysis import AnalysisResponse, SingleAthleteAnalysisResponse
-from app.services.gemini_service import analyze_video
+from app.services.analysis_service import analyze_video
 from app.services.training_focus_service import build_training_focus_response
 from app.services.scouting_service import analyze_scouting_videos
+
+from app.schemas.scouting import ScoutingResponse
+from app.schemas.analysis import (AnalysisResponse, SingleAthleteAnalysisResponse, )
 
 app = FastAPI(title="Grappling Analyzer API")
 
@@ -37,8 +39,10 @@ def health():
 
 @app.post(
     "/analyze",
-    # response_model=Union[AnalysisResponse, SingleAthleteAnalysisResponse],
-    response_model=None,
+    response_model=Union[
+        AnalysisResponse,
+        SingleAthleteAnalysisResponse,
+    ],
 )
 async def analyze(
     video: Annotated[UploadFile, File(...)],
@@ -138,7 +142,7 @@ async def training_focus(payload: dict):
 
 @app.post(
     "/scouting",
-    response_model=None,
+    response_model=ScoutingResponse,
 )
 async def scouting(
     videos: Annotated[list[UploadFile], File(...)],

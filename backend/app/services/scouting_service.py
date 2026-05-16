@@ -1,15 +1,10 @@
 import json
-import os
 import re
 import time
 from typing import Any
 
-from google import genai
-
-from app.utils.scouting_prompts import build_scouting_prompt
-
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
+from app.services.gemini_client import client
+from app.prompts.scouting_prompts import build_scouting_prompt
 
 def _default_response(profile: str) -> dict:
     base = {

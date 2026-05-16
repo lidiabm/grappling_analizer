@@ -1,14 +1,10 @@
 import json
 import re
-import os
 import time
-from google import genai
-from google.genai import types
 
-from app.utils.prompts2 import build_prompt
+from app.services.gemini_client import client
+from app.prompts.analysis_prompts import build_prompt
 from app.utils.stats import derive_stats_from_timeline
-
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 ALLOWED_POSITIONS = {
     "standing",
