@@ -2,8 +2,7 @@ import { useState } from "react";
 import Header from "./components/Header";
 
 import HomeScreen from "./screens/HomeScreen";
-import LluitadorMenuScreen from "./screens/LluitadorMenuScreen";
-import EntrenadorMenuScreen from "./screens/EntrenadorMenuScreen";
+import MenuScreen from "./screens/MenuScreen";
 import AnalysisScreen from "./screens/AnalysisScreen";
 import PlaceholderScreen from "./screens/PlaceholderScreen";
 import HistoryScreen from "./screens/HistoryScreen";
@@ -47,11 +46,14 @@ function App() {
 
       case "lluitador-menu":
         return (
-          <LluitadorMenuScreen
+          <MenuScreen
+            profile="lluitador"
             onSelectFeature={(feature) => setScreen(feature)}
             onSelectProfile={(profile) =>
               setScreen(
-                profile === "lluitador" ? "lluitador-menu" : "entrenador-menu"
+                profile === "lluitador"
+                  ? "lluitador-menu"
+                  : "entrenador-menu"
               )
             }
           />
@@ -59,11 +61,14 @@ function App() {
 
       case "entrenador-menu":
         return (
-          <EntrenadorMenuScreen
+          <MenuScreen
+            profile="entrenador"
             onSelectFeature={(feature) => setScreen(feature)}
             onSelectProfile={(profile) =>
               setScreen(
-                profile === "lluitador" ? "lluitador-menu" : "entrenador-menu"
+                profile === "lluitador"
+                  ? "lluitador-menu"
+                  : "entrenador-menu"
               )
             }
           />
