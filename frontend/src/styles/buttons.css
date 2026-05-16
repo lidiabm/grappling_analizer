@@ -53,8 +53,12 @@
 }
 
 .back-button {
-  width: fit-content;
-  padding: 10px 14px;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
@@ -69,7 +73,12 @@
 
 .back-button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.06);
-  transform: none;
+}
+
+.back-button svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
 }
 
 .profile-big-buttons,

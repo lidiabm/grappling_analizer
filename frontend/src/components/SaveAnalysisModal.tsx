@@ -111,14 +111,14 @@ export default function SaveAnalysisModal({
         {error && <p className="save-error">{error}</p>}
 
         <div className="save-modal-actions">
-          <button type="button" onClick={onClose} className="secondary-button">
+          <button type="button" onClick={onClose} className=".save-modal-secondary-button">
             Cancel·lar
           </button>
 
           <button
             type="button"
             onClick={handleSave}
-            className="primary-button"
+            className=".save-modal-primary-button"
             disabled={
               !title.trim() || (showStudentFolder && !studentFolder.trim())
             }

@@ -69,8 +69,8 @@
   margin-top: 22px;
 }
 
-.primary-button,
-.secondary-button {
+.save-modal-primary-button,
+.save-modal-secondary-button {
   border-radius: 14px;
   padding: 10px 16px;
   font-weight: 800;
