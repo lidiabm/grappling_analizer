@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { AnalysisResponse, UserProfile } from "../types";
-import "./AnalysisResult.css";
 import SaveAnalysisModal from "./SaveAnalysisModal";
 import StatsCharts from "./charts/StatsCharts";
+import "./AnalysisResult.css";
 
 type Props = {
   result: AnalysisResponse | null;
@@ -36,13 +36,24 @@ function getAnalysisType(result: any, profile: UserProfile): AnalysisType {
   return "combat_entrenador";
 }
 
+function getAnalysisTypeLabel(type: AnalysisType) {
+  const labels: Record<AnalysisType, string> = {
+    auto_analisi: "Autoanàlisi",
+    analisi_alumne: "Anàlisi d’alumne",
+    combat_lluitador: "Combat complet",
+    combat_entrenador: "Combat d’entrenador",
+  };
+
+  return labels[type];
+}
+
 function renderStringList(items?: string[]) {
   if (!items || items.length === 0) {
-    return <p className="analysis-empty">No hi ha informació disponible.</p>;
+    return <p className="analysis-result-empty">No hi ha informació disponible.</p>;
   }
 
   return (
-    <ul className="analysis-list">
+    <ul className="analysis-result-list">
       {items.map((item, index) => (
         <li key={index}>{item}</li>
       ))}
@@ -56,25 +67,25 @@ function renderOpponentLabel(
   descripcioVisual?: string
 ) {
   if (nomVisible && nomVisible !== "desconegut") {
-    return `${fallbackLabel} (${nomVisible})`;
+    return `${fallbackLabel} · ${nomVisible}`;
   }
 
-  return `${fallbackLabel} (${descripcioVisual ?? "desconegut"})`;
+  return `${fallbackLabel} · ${descripcioVisual ?? "desconegut"}`;
 }
 
 function renderErrors(op: any) {
   const errors = op.errors_i_correccions ?? op.errors_principals ?? [];
 
   if (!errors.length) {
-    return <p className="analysis-empty">No s’han detectat errors destacables.</p>;
+    return <p className="analysis-result-empty">No s’han detectat errors destacables.</p>;
   }
 
   return (
-    <ul className="analysis-list">
+    <ul className="analysis-result-list">
       {errors.map((e: any, index: number) => (
         <li key={index}>
-          {e.error} ({e.moment_aproximat})
-          {e.fase ? ` [${e.fase}]` : ""} →{" "}
+          {e.error} {e.moment_aproximat ? `(${e.moment_aproximat})` : ""}
+          {e.fase ? ` · ${e.fase}` : ""} →{" "}
           {e.impacte ?? e.consequencia ?? "sense impacte especificat"}
           {e.correccio && <> — Correcció: {e.correccio}</>}
           {e.correccio_tecnica && <> — Correcció tècnica: {e.correccio_tecnica}</>}
@@ -89,15 +100,15 @@ function renderErrors(op: any) {
 
 function renderEncerts(op: any) {
   if (!op.encerts_clau?.length) {
-    return <p className="analysis-empty">No s’han detectat encerts destacables.</p>;
+    return <p className="analysis-result-empty">No s’han detectat encerts destacables.</p>;
   }
 
   return (
-    <ul className="analysis-list">
+    <ul className="analysis-result-list">
       {op.encerts_clau.map((e: any, index: number) => (
         <li key={index}>
-          {e.encert} ({e.moment_aproximat})
-          {e.fase ? ` [${e.fase}]` : ""} → {e.impacte}
+          {e.encert} {e.moment_aproximat ? `(${e.moment_aproximat})` : ""}
+          {e.fase ? ` · ${e.fase}` : ""} → {e.impacte}
           {e.principi_tecnic && <> — Principi tècnic: {e.principi_tecnic}</>}
         </li>
       ))}
@@ -109,11 +120,11 @@ function renderMillores(op: any) {
   const millores = op.millores_recomanades ?? op.prioritats_de_treball ?? [];
 
   if (!millores.length) {
-    return <p className="analysis-empty">No hi ha millores recomanades.</p>;
+    return <p className="analysis-result-empty">No hi ha millores recomanades.</p>;
   }
 
   return (
-    <ul className="analysis-list">
+    <ul className="analysis-result-list">
       {millores.map((m: any, index: number) => (
         <li key={index}>
           {m.prioritat && <strong>[{m.prioritat}] </strong>}
@@ -124,97 +135,6 @@ function renderMillores(op: any) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function renderOponent(title: string, op?: any) {
-  if (!op) {
-    return (
-      <div className="opponent-card">
-        <h4 className="opponent-title">{title}</h4>
-        <p className="analysis-empty">
-          No hi ha informació disponible per aquest lluitador.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="opponent-card">
-      <h4 className="opponent-title">{title}</h4>
-
-      {op.resum_personal && (
-        <div className="opponent-block">
-          <span className="opponent-block-title">Resum personal</span>
-          <p className="analysis-text">{op.resum_personal}</p>
-        </div>
-      )}
-
-      {op.resum_tecnic && (
-        <div className="opponent-block">
-          <span className="opponent-block-title">Resum tècnic</span>
-          <p className="analysis-text">{op.resum_tecnic}</p>
-        </div>
-      )}
-
-      {op.resum_rendiment && (
-        <div className="opponent-block">
-          <span className="opponent-block-title">Resum del rendiment</span>
-          <p className="analysis-text">{op.resum_rendiment}</p>
-        </div>
-      )}
-
-      {op.model_de_combat && (
-        <div className="opponent-block">
-          <span className="opponent-block-title">Model de combat</span>
-          <p className="analysis-text">{op.model_de_combat}</p>
-        </div>
-      )}
-
-      {op.lectura_posicional && (
-        <div className="opponent-block">
-          <span className="opponent-block-title">Lectura posicional</span>
-          <p className="analysis-text">{op.lectura_posicional}</p>
-        </div>
-      )}
-
-      <div className="opponent-block">
-        <span className="opponent-block-title">Tàctica</span>
-        <p className="analysis-text">
-          {op.tactica_general || "No hi ha informació disponible."}
-        </p>
-      </div>
-
-      <div className="opponent-block">
-        <span className="opponent-block-title">Patrons</span>
-        {renderStringList(op.patrons_tactics)}
-      </div>
-
-      <div className="opponent-block">
-        <span className="opponent-block-title">Fortaleses</span>
-        {renderStringList(op.fortaleses_clau)}
-      </div>
-
-      <div className="opponent-block">
-        <span className="opponent-block-title">Debilitats</span>
-        {renderStringList(op.debilitats_clau)}
-      </div>
-
-      <div className="opponent-block">
-        <span className="opponent-block-title">Errors</span>
-        {renderErrors(op)}
-      </div>
-
-      <div className="opponent-block">
-        <span className="opponent-block-title">Encerts</span>
-        {renderEncerts(op)}
-      </div>
-
-      <div className="opponent-block">
-        <span className="opponent-block-title">Millores / prioritats</span>
-        {renderMillores(op)}
-      </div>
-    </div>
   );
 }
 
@@ -230,15 +150,125 @@ function renderValue(value: any): string {
   return String(value);
 }
 
+function ResultBlock({
+  title,
+  children,
+  wide = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <article
+      className={`analysis-result-block ${
+        wide ? "analysis-result-block-wide" : ""
+      }`}
+    >
+      <h4>{title}</h4>
+      {children}
+    </article>
+  );
+}
+
+function renderOponent(title: string, op?: any) {
+  if (!op) {
+    return (
+      <section className="analysis-opponent-card">
+        <header className="analysis-opponent-header">
+          <span className="analysis-result-eyebrow">Lluitador</span>
+          <h3>{title}</h3>
+        </header>
+
+        <p className="analysis-result-empty">
+          No hi ha informació disponible per aquest lluitador.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="analysis-opponent-card">
+      <header className="analysis-opponent-header">
+        <span className="analysis-result-eyebrow">Lluitador</span>
+        <h3>{title}</h3>
+      </header>
+
+      <div className="analysis-result-block-grid">
+        {op.resum_personal && (
+          <ResultBlock title="Resum personal" wide>
+            <p>{op.resum_personal}</p>
+          </ResultBlock>
+        )}
+
+        {op.resum_tecnic && (
+          <ResultBlock title="Resum tècnic" wide>
+            <p>{op.resum_tecnic}</p>
+          </ResultBlock>
+        )}
+
+        {op.resum_rendiment && (
+          <ResultBlock title="Resum del rendiment" wide>
+            <p>{op.resum_rendiment}</p>
+          </ResultBlock>
+        )}
+
+        {op.model_de_combat && (
+          <ResultBlock title="Model de combat" wide>
+            <p>{op.model_de_combat}</p>
+          </ResultBlock>
+        )}
+
+        {op.lectura_posicional && (
+          <ResultBlock title="Lectura posicional" wide>
+            <p>{op.lectura_posicional}</p>
+          </ResultBlock>
+        )}
+
+        <ResultBlock title="Tàctica" wide>
+          <p>{op.tactica_general || "No hi ha informació disponible."}</p>
+        </ResultBlock>
+
+        <ResultBlock title="Patrons">
+          {renderStringList(op.patrons_tactics)}
+        </ResultBlock>
+
+        <ResultBlock title="Fortaleses">
+          {renderStringList(op.fortaleses_clau)}
+        </ResultBlock>
+
+        <ResultBlock title="Debilitats" wide>
+          {renderStringList(op.debilitats_clau)}
+        </ResultBlock>
+
+        <ResultBlock title="Errors" wide>
+          {renderErrors(op)}
+        </ResultBlock>
+
+        <ResultBlock title="Encerts" wide>
+          {renderEncerts(op)}
+        </ResultBlock>
+
+        <ResultBlock title="Millores / prioritats" wide>
+          {renderMillores(op)}
+        </ResultBlock>
+      </div>
+    </section>
+  );
+}
+
 function renderStats(stats?: any) {
   if (!stats) return null;
 
   return (
-    <div className="analysis-card">
-      <h3 className="analysis-card-title">Estadístiques</h3>
+    <section className="analysis-result-card">
+      <div className="analysis-result-section-heading">
+        <span className="analysis-result-eyebrow">Dades</span>
+        <h3>Estadístiques</h3>
+      </div>
 
       {stats.temps_per_posicio?.length ? (
-        <ul className="analysis-list">
+        <ul className="analysis-result-list analysis-result-list-compact">
           {stats.temps_per_posicio.map((item: any, index: number) => (
             <li key={index}>
               {item.lluitador ? `${item.lluitador} - ` : ""}
@@ -251,50 +281,29 @@ function renderStats(stats?: any) {
           ))}
         </ul>
       ) : (
-        <p className="analysis-empty">No hi ha estadístiques disponibles.</p>
+        <p className="analysis-result-empty">No hi ha estadístiques disponibles.</p>
       )}
 
-      <p className="analysis-text">
-        <strong>Temps dominant:</strong>{" "}
-        {renderValue(stats.temps_dominant_total)}
-      </p>
+      <div className="analysis-stat-grid">
+        <Stat label="Temps dominant" value={renderValue(stats.temps_dominant_total)} />
+        <Stat label="Temps defensiu" value={renderValue(stats.temps_defensiu_total)} />
+        <Stat label="Temps neutral" value={renderValue(stats.temps_neutral_total)} />
+        <Stat label="Canvis de control" value={renderValue(stats.canvis_control)} />
+        <Stat label="Intents de finalització" value={renderValue(stats.intents_finalitzacio)} />
+        <Stat label="Intents d’enderroc" value={renderValue(stats.intents_enderroc)} />
+        <Stat label="Guard pulls" value={renderValue(stats.guard_pulls)} />
+        <Stat label="Reversions" value={renderValue(stats.reversions)} />
+        <Stat label="Escapades" value={renderValue(stats.escapades)} />
+      </div>
+    </section>
+  );
+}
 
-      <p className="analysis-text">
-        <strong>Temps defensiu:</strong>{" "}
-        {renderValue(stats.temps_defensiu_total)}
-      </p>
-
-      <p className="analysis-text">
-        <strong>Temps neutral:</strong>{" "}
-        {renderValue(stats.temps_neutral_total)}
-      </p>
-
-      <p className="analysis-text">
-        <strong>Canvis de control:</strong>{" "}
-        {renderValue(stats.canvis_control)}
-      </p>
-
-      <p className="analysis-text">
-        <strong>Intents de finalització:</strong>{" "}
-        {renderValue(stats.intents_finalitzacio)}
-      </p>
-
-      <p className="analysis-text">
-        <strong>Intents d’enderroc:</strong>{" "}
-        {renderValue(stats.intents_enderroc)}
-      </p>
-
-      <p className="analysis-text">
-        <strong>Guard pulls:</strong> {renderValue(stats.guard_pulls)}
-      </p>
-
-      <p className="analysis-text">
-        <strong>Reversions:</strong> {renderValue(stats.reversions)}
-      </p>
-
-      <p className="analysis-text">
-        <strong>Escapades:</strong> {renderValue(stats.escapades)}
-      </p>
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="analysis-stat-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -303,37 +312,38 @@ function renderLecturaGlobal(lectura?: any) {
   if (!lectura) return null;
 
   return (
-    <div className="analysis-card">
-      <h3 className="analysis-card-title">Lectura global</h3>
+    <section className="analysis-result-card">
+      <div className="analysis-result-section-heading">
+        <span className="analysis-result-eyebrow">Lectura</span>
+        <h3>Lectura global</h3>
+      </div>
 
-      {lectura.dinamica_general && (
-        <div className="analysis-subblock">
-          <span className="opponent-block-title">Dinàmica general</span>
-          <p className="analysis-text">{lectura.dinamica_general}</p>
-        </div>
-      )}
+      <div className="analysis-result-block-grid">
+        {lectura.dinamica_general && (
+          <ResultBlock title="Dinàmica general" wide>
+            <p>{lectura.dinamica_general}</p>
+          </ResultBlock>
+        )}
 
-      {lectura.moments_decisius && (
-        <div className="analysis-subblock">
-          <span className="opponent-block-title">Moments decisius</span>
-          {renderStringList(lectura.moments_decisius)}
-        </div>
-      )}
+        {lectura.moments_decisius && (
+          <ResultBlock title="Moments decisius">
+            {renderStringList(lectura.moments_decisius)}
+          </ResultBlock>
+        )}
 
-      {lectura.lliçons_practiques && (
-        <div className="analysis-subblock">
-          <span className="opponent-block-title">Lliçons pràctiques</span>
-          {renderStringList(lectura.lliçons_practiques)}
-        </div>
-      )}
+        {lectura.lliçons_practiques && (
+          <ResultBlock title="Lliçons pràctiques">
+            {renderStringList(lectura.lliçons_practiques)}
+          </ResultBlock>
+        )}
 
-      {lectura.claus_tactiques && (
-        <div className="analysis-subblock">
-          <span className="opponent-block-title">Claus tàctiques</span>
-          {renderStringList(lectura.claus_tactiques)}
-        </div>
-      )}
-    </div>
+        {lectura.claus_tactiques && (
+          <ResultBlock title="Claus tàctiques">
+            {renderStringList(lectura.claus_tactiques)}
+          </ResultBlock>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -382,26 +392,26 @@ export default function AnalysisResult({
   const singleAthleteTitle =
     selectedOponentId === "desconegut"
       ? "Lluitador seleccionat"
-      : `Lluitador seleccionat (${selectedOponentId})`;
+      : `Lluitador seleccionat · ${selectedOponentId}`;
 
   return (
-    <section className="analysis-container">
-      <div className="analysis-header">
+    <section className="analysis-result-container">
+      <header className="analysis-result-header">
         <div>
-          <h2 className="analysis-main-title">Resultat de l’anàlisi</h2>
+          <span className="analysis-result-eyebrow">Informe generat</span>
 
-          <p className="analysis-mode-label">
-            Tipus d’anàlisi: {analysisType}
-          </p>
+          <h2 className="analysis-result-title">Resultat de l’anàlisi</h2>
 
-          {isSingleAthlete && (
-            <p className="analysis-mode-label">
-              Anàlisi individual: {selectedOponentId}
-            </p>
-          )}
+          <div className="analysis-result-meta-row">
+            <span>{getAnalysisTypeLabel(analysisType)}</span>
+
+            {isSingleAthlete && (
+              <span>Anàlisi individual · {selectedOponentId}</span>
+            )}
+          </div>
         </div>
 
-        <div className="analysis-header-actions">
+        <div className="analysis-result-actions">
           {showSaveButton ? (
             <button
               type="button"
@@ -414,16 +424,15 @@ export default function AnalysisResult({
             onDelete && (
               <button
                 type="button"
-                className="analysis-delete-button"
+                className="analysis-result-delete-button"
                 onClick={onDelete}
-                aria-label="Eliminar anàlisi"
               >
                 Eliminar anàlisi
               </button>
             )
           )}
         </div>
-      </div>
+      </header>
 
       {showSaveButton && (
         <SaveAnalysisModal
@@ -435,66 +444,64 @@ export default function AnalysisResult({
         />
       )}
 
-      <div className="analysis-card">
-        <h3 className="analysis-card-title">Informació del combat</h3>
+      <section className="analysis-result-card analysis-result-summary-card">
+        <div className="analysis-result-section-heading">
+          <span className="analysis-result-eyebrow">Combat</span>
+          <h3>Informació general</h3>
+        </div>
 
-        <p className="analysis-text">
-          <strong>Durada estimada:</strong>{" "}
-          {data.combat_info?.durada_estimada ?? "desconegut"}
-        </p>
-
-        <p className="analysis-text">
-          <strong>Confiança global:</strong>{" "}
-          {data.combat_info?.nivell_confianca_global ?? "desconegut"}
-        </p>
-      </div>
-
-      <div className="analysis-card">
-        <h3 className="analysis-card-title">
-          {isSingleAthlete ? "Resum del rendiment" : "Resum del combat"}
-        </h3>
+        <div className="analysis-stat-grid">
+          <Stat
+            label="Durada estimada"
+            value={data.combat_info?.durada_estimada ?? "desconegut"}
+          />
+          <Stat
+            label="Confiança global"
+            value={data.combat_info?.nivell_confianca_global ?? "desconegut"}
+          />
+          <Stat
+            label="Mètode"
+            value={data.resum_partit?.metode ?? "desconegut"}
+          />
+          {data.resum_partit?.tipus_submissio && (
+            <Stat
+              label="Submissió"
+              value={data.resum_partit.tipus_submissio}
+            />
+          )}
+        </div>
 
         {data.resum_partit?.guanyador && (
-          <p className="analysis-text">
+          <p className="analysis-result-text">
             <strong>Guanyador:</strong>{" "}
-            {data.resum_partit.guanyador.id ?? "desconegut"} -{" "}
+            {data.resum_partit.guanyador.id ?? "desconegut"} ·{" "}
             {data.resum_partit.guanyador.descripcio ?? "desconegut"}
           </p>
         )}
 
-        <p className="analysis-text">
-          <strong>Mètode:</strong>{" "}
-          {data.resum_partit?.metode ?? "desconegut"}
-        </p>
+        {data.resum_partit?.resum_breu && (
+          <p className="analysis-result-text">{data.resum_partit.resum_breu}</p>
+        )}
+      </section>
 
-        {data.resum_partit?.metode === "submissio" &&
-          data.resum_partit?.tipus_submissio && (
-            <p className="analysis-text">
-              <strong>Tipus de submissió:</strong>{" "}
-              {data.resum_partit.tipus_submissio}
-            </p>
-          )}
-
-        <p className="analysis-text">
-          {data.resum_partit?.resum_breu ?? ""}
-        </p>
-      </div>
-
-      <div className="analysis-card">
-        <h3 className="analysis-card-title">Timeline</h3>
+      <section className="analysis-result-card">
+        <div className="analysis-result-section-heading">
+          <span className="analysis-result-eyebrow">Seqüència</span>
+          <h3>Timeline</h3>
+        </div>
 
         {data.timeline?.length ? (
-          <ul className="timeline-list">
+          <ul className="analysis-timeline-list">
             {data.timeline.map((event: any, index: number) => (
-              <li key={index} className="timeline-item">
-                <span className="timeline-time">
+              <li key={index} className="analysis-timeline-item">
+                <span className="analysis-timeline-time">
                   {event.inici} - {event.fi}
                 </span>
 
-                <p className="analysis-text">{event.descripcio}</p>
+                <p>{event.descripcio}</p>
 
-                <div className="timeline-meta">
-                  <span>Posició: {event.posicio}</span>
+                <div className="analysis-timeline-meta">
+                  <span>{event.posicio}</span>
                   <span>Controlador: {event.controlador}</span>
                   <span>Rellevància: {event.rellevancia}</span>
                   <span>Confiança: {event.confianca}</span>
@@ -503,41 +510,50 @@ export default function AnalysisResult({
             ))}
           </ul>
         ) : (
-          <p className="analysis-empty">No hi ha esdeveniments disponibles.</p>
+          <p className="analysis-result-empty">No hi ha esdeveniments disponibles.</p>
         )}
-      </div>
+      </section>
 
-      <div className="analysis-card">
-        <h3 className="analysis-card-title">
-          {isFullFight ? "Anàlisi dels oponents" : "Anàlisi del lluitador"}
-        </h3>
+      <section className="analysis-result-card">
+        <div className="analysis-result-section-heading">
+          <span className="analysis-result-eyebrow">Rendiment</span>
+          <h3>{isFullFight ? "Anàlisi dels oponents" : "Anàlisi del lluitador"}</h3>
+        </div>
 
-        <div className="opponents-grid">
+        <div className="analysis-opponents-grid">
           {isFullFight ? (
             <>
-              {renderOponent(
-                oponent1Label,
-                data.analisi_oponents?.oponent_1
-              )}
-              {renderOponent(
-                oponent2Label,
-                data.analisi_oponents?.oponent_2
-              )}
+              {renderOponent(oponent1Label, data.analisi_oponents?.oponent_1)}
+              {renderOponent(oponent2Label, data.analisi_oponents?.oponent_2)}
             </>
           ) : (
             renderOponent(singleAthleteTitle, data.analisi_lluitador)
           )}
         </div>
-      </div>
+      </section>
 
       {renderLecturaGlobal(data.lectura_global)}
 
       {showStats && <StatsCharts stats={data.estadistiques_estimades} />}
+
+      {showStats && renderStats(data.estadistiques_estimades)}
+
       {data.incerteses?.length > 0 && (
-        <div className="analysis-card">
-          <h3 className="analysis-card-title">Incerteses</h3>
-          {renderStringList(data.incerteses)}
-        </div>
+        <section className="analysis-result-card analysis-review-card">
+          <div className="analysis-result-section-heading">
+            <span className="analysis-result-eyebrow">Revisió</span>
+            <h3>Incerteses</h3>
+          </div>
+
+          <div className="analysis-review-list">
+            {data.incerteses.map((item: string, index: number) => (
+              <article key={index} className="analysis-review-item">
+                <span>{index + 1}</span>
+                <p>{item}</p>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
     </section>
   );

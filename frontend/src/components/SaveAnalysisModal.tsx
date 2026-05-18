@@ -30,12 +30,28 @@ export default function SaveAnalysisModal({
   const isSingleAthleteAnalysis = result.mode === "single_athlete";
   const showStudentFolder = isCoach && isSingleAthleteAnalysis;
 
-  const handleSave = () => {
+  function resetAndClose() {
+    setTitle("");
+    setFightDate("");
+    setStudentFolder("");
+    setSaved(false);
+    setError("");
+    onClose();
+  }
+
+  function handleSave() {
     const trimmedTitle = title.trim();
+    const trimmedStudentFolder = studentFolder.trim();
 
-    if (!trimmedTitle) return;
+    if (!trimmedTitle) {
+      setError("Has d’afegir un títol per guardar l’anàlisi.");
+      return;
+    }
 
-    if (showStudentFolder && !studentFolder.trim()) return;
+    if (showStudentFolder && !trimmedStudentFolder) {
+      setError("Has d’indicar la carpeta o el nom de l’alumne.");
+      return;
+    }
 
     if (analysisTitleExists(trimmedTitle)) {
       setError("Ja existeix una anàlisi amb aquest títol.");
@@ -48,7 +64,7 @@ export default function SaveAnalysisModal({
       createdAt: new Date().toISOString(),
       fightId,
       profileType: profile,
-      studentFolder: showStudentFolder ? studentFolder.trim() : undefined,
+      studentFolder: showStudentFolder ? trimmedStudentFolder : undefined,
       fightDate: fightDate || undefined,
       result,
     };
@@ -58,75 +74,99 @@ export default function SaveAnalysisModal({
     setError("");
 
     setTimeout(() => {
-      setTitle("");
-      setFightDate("");
-      setStudentFolder("");
-      setSaved(false);
-      setError("");
-      onClose();
+      resetAndClose();
     }, 800);
-  };
+  }
 
   return (
-    <div className="save-modal-overlay">
-      <div className="save-modal">
-        <h2>Guardar anàlisi</h2>
+    <div className="save-modal-overlay" role="presentation">
+      <section
+        className="save-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="save-analysis-title"
+      >
+        <header className="save-modal-header">
+          <span className="save-modal-eyebrow">Guardar informe</span>
 
-        <label>
-          Títol de l’anàlisi
-          <input
-            type="text"
-            placeholder="Ex: Combat contra Jiménez"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setError("");
-            }}
-          />
-        </label>
+          <h2 id="save-analysis-title">Guardar anàlisi</h2>
 
-        <label>
-          Data del combat
-          <input
-            type="date"
-            value={fightDate}
-            onChange={(e) => setFightDate(e.target.value)}
-          />
-        </label>
+          <p>
+            Desa aquest resultat al teu historial per consultar-lo més endavant.
+          </p>
+        </header>
 
-        {showStudentFolder && (
-          <label>
-            Carpeta / alumne
+        <div className="save-modal-form">
+          <label className="save-modal-field">
+            <span>Títol de l’anàlisi</span>
+
             <input
               type="text"
-              placeholder="Ex: Marc, Pau, Laura..."
-              value={studentFolder}
-              onChange={(e) => setStudentFolder(e.target.value)}
+              placeholder="Ex: Combat contra Jiménez"
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setError("");
+              }}
             />
           </label>
+
+          <label className="save-modal-field">
+            <span>Data del combat</span>
+
+            <input
+              type="date"
+              value={fightDate}
+              onChange={(event) => setFightDate(event.target.value)}
+            />
+          </label>
+
+          {showStudentFolder && (
+            <label className="save-modal-field">
+              <span>Carpeta / alumne</span>
+
+              <input
+                type="text"
+                placeholder="Ex: Marc, Pau, Laura..."
+                value={studentFolder}
+                onChange={(event) => {
+                  setStudentFolder(event.target.value);
+                  setError("");
+                }}
+              />
+            </label>
+          )}
+        </div>
+
+        {saved && (
+          <div className="save-modal-success">
+            Anàlisi guardada correctament.
+          </div>
         )}
 
-        {saved && <p className="save-success">Anàlisi guardada correctament.</p>}
+        {error && <div className="save-modal-error">{error}</div>}
 
-        {error && <p className="save-error">{error}</p>}
-
-        <div className="save-modal-actions">
-          <button type="button" onClick={onClose} className=".save-modal-secondary-button">
+        <footer className="save-modal-actions">
+          <button
+            type="button"
+            onClick={resetAndClose}
+            className="secondary-button"
+          >
             Cancel·lar
           </button>
 
           <button
             type="button"
             onClick={handleSave}
-            className=".save-modal-primary-button"
+            className="primary-button"
             disabled={
               !title.trim() || (showStudentFolder && !studentFolder.trim())
             }
           >
             Guardar
           </button>
-        </div>
-      </div>
+        </footer>
+      </section>
     </div>
   );
 }

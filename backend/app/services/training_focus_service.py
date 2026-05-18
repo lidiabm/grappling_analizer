@@ -53,16 +53,6 @@ def get_by_fighter_or_global(value: Any, fighter: str) -> float:
     return 0
 
 
-def get_analysis_label(analysis: dict, index: int) -> str:
-    created_at = analysis.get("createdAt") or ""
-
-    if created_at:
-        date = str(created_at)[:10]
-        return f"{date} · #{index + 1}"
-
-    return f"Anàlisi {index + 1}"
-
-
 def parse_date(value: Any) -> datetime:
     if not value:
         return datetime.min.replace(tzinfo=timezone.utc)
@@ -79,16 +69,31 @@ def parse_date(value: Any) -> datetime:
         return datetime.min.replace(tzinfo=timezone.utc)
 
 
+def get_analysis_fight_date(analysis: dict) -> datetime:
+    return parse_date(analysis.get("fightDate"))
+
+
+def get_analysis_label(analysis: dict, index: int) -> str:
+    fight_date = analysis.get("fightDate") or ""
+
+    if fight_date:
+        date = str(fight_date)[:10]
+        title = analysis.get("title") or f"Combat #{index + 1}"
+        return f"{date} · {title}"
+
+    return f"Anàlisi {index + 1}"
+
+
 def filter_recent_weeks(analyses: list[dict], weeks: int) -> list[dict]:
     valid_dates = [
-        parse_date(analysis.get("createdAt"))
+        get_analysis_fight_date(analysis)
         for analysis in analyses
-        if parse_date(analysis.get("createdAt"))
+        if get_analysis_fight_date(analysis)
         != datetime.min.replace(tzinfo=timezone.utc)
     ]
 
     if not valid_dates:
-        return analyses
+        return []
 
     latest_date = max(valid_dates)
     cutoff_date = latest_date - timedelta(weeks=weeks)
@@ -96,7 +101,7 @@ def filter_recent_weeks(analyses: list[dict], weeks: int) -> list[dict]:
     return [
         analysis
         for analysis in analyses
-        if parse_date(analysis.get("createdAt")) >= cutoff_date
+        if get_analysis_fight_date(analysis) >= cutoff_date
     ]
 
 
@@ -124,6 +129,7 @@ def build_metrics(analyses: list[dict]) -> list[dict]:
         metrics.append({
             "fightId": analysis.get("fightId") or analysis.get("id") or str(index),
             "label": get_analysis_label(analysis, index),
+            "date": analysis.get("fightDate"),
             "dominantTime": round1(dominant_time),
             "defensiveTime": round1(defensive_time),
             "neutralTime": round1(neutral_time),
@@ -222,7 +228,7 @@ def build_position_totals(
 
 
 def get_iso_week_key(analysis: dict) -> str:
-    date = parse_date(analysis.get("createdAt"))
+    date = get_analysis_fight_date(analysis)
 
     if date == datetime.min.replace(tzinfo=timezone.utc):
         return "Sense setmana"
@@ -367,13 +373,11 @@ def group_by_student(analyses: list[dict]) -> list[dict]:
     students = []
 
     for student_name, items in grouped.items():
-        sorted_desc = sorted(
+        sorted_asc = sorted(
             items,
-            key=lambda item: parse_date(item.get("createdAt")),
-            reverse=True,
+            key=lambda item: get_analysis_fight_date(item),
         )
 
-        sorted_asc = list(reversed(sorted_desc))
         metrics = build_metrics(sorted_asc)
 
         students.append({
@@ -393,18 +397,23 @@ def group_by_student(analyses: list[dict]) -> list[dict]:
     return sorted(students, key=lambda item: item["studentName"])
 
 
-def build_training_focus_response(all_analyses: list[dict]) -> dict:
+def build_training_focus_response(
+    all_analyses: list[dict],
+    chart_weeks: int = CHART_WEEKS,
+    focus_weeks: int = FOCUS_WEEKS,
+) -> dict:
     analyses = [
         analysis
         for analysis in all_analyses
         if analysis.get("profileType") == "entrenador"
         and (analysis.get("studentFolder") or "").strip()
+        and get_analysis_fight_date(analysis) != datetime.min.replace(tzinfo=timezone.utc)
     ]
 
-    chart_analyses = filter_recent_weeks(analyses, CHART_WEEKS)
-    focus_analyses = filter_recent_weeks(analyses, FOCUS_WEEKS)
+    chart_analyses = filter_recent_weeks(analyses, chart_weeks)
+    focus_analyses = filter_recent_weeks(analyses, focus_weeks)
 
-    students = group_by_student(analyses)
+    students = group_by_student(chart_analyses)
 
     global_metrics = build_global_metrics_by_week(chart_analyses)
     focus_metrics = build_global_metrics_by_week(focus_analyses)
@@ -413,8 +422,8 @@ def build_training_focus_response(all_analyses: list[dict]) -> dict:
         "studentsCount": len(students),
         "analysesCount": len(analyses),
         "recentCount": len(focus_analyses),
-        "chartWeeks": CHART_WEEKS,
-        "focusWeeks": FOCUS_WEEKS,
+        "chartWeeks": chart_weeks,
+        "focusWeeks": focus_weeks,
         "globalMetrics": global_metrics,
         "globalPositionTotals": build_position_totals(chart_analyses, False),
         "globalFocus": get_global_focus(focus_metrics),

@@ -1,4 +1,5 @@
 import type { UserProfile } from "../types";
+import "./HomeScreen.css";
 
 type Props = {
   onSelectProfile: (profile: UserProfile) => void;
@@ -6,30 +7,57 @@ type Props = {
 
 function HomeScreen({ onSelectProfile }: Props) {
   return (
-    <div className="selection-panel selection-panel-centered">
-      <h2 className="section-title">Selecciona el teu perfil</h2>
-      <p className="selection-text">
-        Tria un perfil al menú superior per començar.
-      </p>
+    <section className="home-screen">
+      <div className="home-hero">
+        <span className="home-eyebrow">Grappling Analyzer</span>
 
-      <div className="profile-big-buttons">
+        <h1 className="home-title">
+          Analitza combats.
+          <br />
+          Millora decisions.
+        </h1>
+
+        <p className="home-subtitle">
+          Plataforma d’anàlisi de combats i scouting orientada a lluitadors i
+          entrenadors de grappling.
+        </p>
+      </div>
+
+      <div className="home-profile-grid">
         <button
           type="button"
-          className="profile-big-button"
+          className="home-profile-card"
           onClick={() => onSelectProfile("lluitador")}
         >
-          Lluitador
+          <div className="home-profile-content">
+            <span className="home-profile-label">Perfil</span>
+
+            <h2>Lluitador</h2>
+
+            <p>
+              Analitza el teu rendiment, estudia rivals i revisa la teva
+              evolució tècnica.
+            </p>
+          </div>
         </button>
 
         <button
           type="button"
-          className="profile-big-button"
+          className="home-profile-card"
           onClick={() => onSelectProfile("entrenador")}
         >
-          Entrenador
+          <div className="home-profile-content">
+            <span className="home-profile-label">Perfil</span>
+
+            <h2>Entrenador</h2>
+
+            <p>
+              Gestiona esportistes, prepara combats i genera informes tàctics.
+            </p>
+          </div>
         </button>
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -1,154 +1,315 @@
-// import "./LluitadorEvolutionScreen.css";
-// import type { SavedAnalysis } from "../types";
-// import EvolutionSummary from "../components/EvolutionSummary";
-// import EvolutionCharts from "../components/EvolutionCharts";
-// import EvolutionPatterns from "../components/EvolutionPatterns";
-// import ArrowLeftIcon from "../icons/ArrowLeftIcon";
-// import { getSavedAnalyses } from "../storage/analysisStorage";
+import { useMemo, useState } from "react";
+import { analyzeFighterEvolution } from "../api";
+import ArrowLeftIcon from "../icons/ArrowLeftIcon";
+import { getSavedAnalyses } from "../storage/analysisStorage";
+import type { FighterEvolutionResponse, SavedAnalysis } from "../types";
+import "./LluitadorEvolutionScreen.css";
 
-// type Props = {
-//   onBack: () => void;
-// };
+type Props = {
+  onBack: () => void;
+};
 
-// export type EvolutionMetric = {
-//   fightId: string;
-//   label: string;
-//   dominantTime: number;
-//   defensiveTime: number;
-//   neutralTime: number;
-//   submissionAttempts: number;
-//   takedownAttempts: number;
-//   guardPulls: number;
-//   reversals: number;
-//   escapes: number;
-// };
+function formatDate(value?: string) {
+  if (!value) return "Sense data";
 
-// function normalizeNumber(value: any) {
-//   if (typeof value === "number") return value;
+  return new Date(value).toLocaleDateString("ca-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
-//   if (typeof value === "string") {
-//     const cleaned = value.replace(",", ".").replace(/[^\d.-]/g, "");
-//     const parsed = Number(cleaned);
-//     return Number.isFinite(parsed) ? parsed : 0;
-//   }
+function getAnalysisDate(analysis: SavedAnalysis) {
+  return analysis.fightDate || analysis.createdAt;
+}
 
-//   return 0;
-// }
+function LluitadorEvolutionScreen({ onBack }: Props) {
+  const analyses = useMemo(() => {
+    return getSavedAnalyses()
+      .filter(
+        (analysis) =>
+          analysis.profileType === "lluitador" &&
+          analysis.result.mode === "single_athlete"
+      )
+      .sort(
+        (a, b) =>
+          new Date(getAnalysisDate(b)).getTime() -
+          new Date(getAnalysisDate(a)).getTime()
+      );
+  }, []);
 
-// function getAnalysisData(analysis: any) {
-//   return analysis.result ?? analysis.data ?? analysis;
-// }
+  const [oldAnalysisId, setOldAnalysisId] = useState("");
+  const [newAnalysisId, setNewAnalysisId] = useState("");
+  const [result, setResult] = useState<FighterEvolutionResponse | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState("");
 
-// function getOwnValue(value: any, selectedOponentId: string) {
-//   if (value && typeof value === "object") {
-//     return normalizeNumber(value[selectedOponentId]);
-//   }
+  const oldAnalysis = analyses.find((analysis) => analysis.id === oldAnalysisId);
+  const newAnalysis = analyses.find((analysis) => analysis.id === newAnalysisId);
 
-//   return normalizeNumber(value);
-// }
+  const canAnalyze =
+    Boolean(oldAnalysis) &&
+    Boolean(newAnalysis) &&
+    oldAnalysisId !== newAnalysisId &&
+    !isAnalyzing;
 
-// function getAnalysisLabel(analysis: SavedAnalysis, index: number) {
-//   const data = getAnalysisData(analysis);
+  async function handleAnalyzeEvolution() {
+    if (!oldAnalysis || !newAnalysis) {
+      setError("Has de seleccionar dos anàlisis.");
+      return;
+    }
 
-//   const date = analysis.createdAt ?? "";
-//   const shortDate = date ? String(date).slice(0, 10) : `Combat ${index + 1}`;
+    if (oldAnalysis.id === newAnalysis.id) {
+      setError("Has de seleccionar dos anàlisis diferents.");
+      return;
+    }
 
-//   const opponent =
-//     data.combat_info?.oponents?.find(
-//       (o: any) => o.id !== data.selected_oponent_id
-//     )?.nom_visible ?? "";
+    setIsAnalyzing(true);
+    setError("");
+    setResult(null);
 
-//   return opponent && opponent !== "desconegut"
-//     ? `${shortDate} · ${opponent}`
-//     : shortDate;
-// }
+    try {
+      const response = await analyzeFighterEvolution({
+        old_analysis: oldAnalysis.result,
+        new_analysis: newAnalysis.result,
+      });
 
-// function buildMetrics(analyses: SavedAnalysis[]): EvolutionMetric[] {
-//   return analyses.map((analysis, index) => {
-//     const data = getAnalysisData(analysis);
-//     const stats = data.estadistiques_estimades ?? {};
-//     const selectedOponentId = data.selected_oponent_id ?? "oponent_1";
+      setResult(response);
+      setOldAnalysisId("");
+      setNewAnalysisId("");
+    } catch (err) {
+      console.error(err);
+      setError("No s’ha pogut generar l’evolució del lluitador.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
 
-//     return {
-//       fightId: analysis.fightId ?? analysis.id ?? String(index),
-//       label: getAnalysisLabel(analysis, index),
-//       dominantTime: getOwnValue(stats.temps_dominant_total, selectedOponentId),
-//       defensiveTime: getOwnValue(stats.temps_defensiu_total, selectedOponentId),
-//       neutralTime: normalizeNumber(stats.temps_neutral_total),
-//       submissionAttempts: getOwnValue(
-//         stats.intents_finalitzacio,
-//         selectedOponentId
-//       ),
-//       takedownAttempts: getOwnValue(stats.intents_enderroc, selectedOponentId),
-//       guardPulls: getOwnValue(stats.guard_pulls, selectedOponentId),
-//       reversals: getOwnValue(stats.reversions, selectedOponentId),
-//       escapes: getOwnValue(stats.escapades, selectedOponentId),
-//     };
-//   });
-// }
+  return (
+    <section className="fighter-evolution-screen app-content">
+      <button type="button" className="back-button" onClick={onBack}>
+        <ArrowLeftIcon />
+      </button>
 
-// function buildPositionTotals(analyses: SavedAnalysis[]) {
-//   const totals: Record<string, number> = {};
+      <header className="fighter-evolution-header">
+        <span className="fighter-evolution-eyebrow">Evolució personal</span>
+        <h2 className="fighter-evolution-title">Evolució del lluitador</h2>
+        <p className="fighter-evolution-subtitle">
+          Compara dos anàlisis propis per veure què ha millorat, què s’ha
+          mantingut i quines prioritats hauries de treballar.
+        </p>
+      </header>
 
-//   analyses.forEach((analysis) => {
-//     const data = getAnalysisData(analysis);
-//     const positions = data.estadistiques_estimades?.temps_per_posicio ?? [];
+      {analyses.length < 2 ? (
+        <section className="fighter-evolution-empty">
+          <span className="fighter-evolution-eyebrow">Dades insuficients</span>
+          <h3>No hi ha prou anàlisis guardats</h3>
+          <p>
+            Necessites com a mínim dos anàlisis propis del lluitador per poder
+            calcular una evolució fiable.
+          </p>
+        </section>
+      ) : (
+        <>
+          <section className="fighter-evolution-compare-card">
+            <div className="fighter-evolution-compare-header">
+              <div>
+                <span className="fighter-evolution-eyebrow">Comparativa</span>
+                <h3>Selecciona dos combats</h3>
+              </div>
 
-//     positions.forEach((item: any) => {
-//       const posicio = item.posicio ?? "other";
-//       totals[posicio] = (totals[posicio] ?? 0) + normalizeNumber(item.segons);
-//     });
-//   });
+              <span className="fighter-evolution-counter">
+                {analyses.length} anàlisis disponibles
+              </span>
+            </div>
 
-//   return Object.entries(totals)
-//     .map(([name, segons]) => ({ name, segons }))
-//     .filter((item) => item.segons > 0)
-//     .sort((a, b) => b.segons - a.segons);
-// }
+            <div className="fighter-evolution-selector-grid">
+              <AnalysisSelector
+                label="Anàlisi antic"
+                description="Escull el combat que servirà com a punt de partida."
+                value={oldAnalysisId}
+                analyses={analyses}
+                selectedAnalysis={oldAnalysis}
+                disabled={isAnalyzing}
+                onChange={(value) => {
+                  setOldAnalysisId(value);
+                  setError("");
+                }}
+              />
 
-// export default function LluitadorEvolutionScreen({ onBack }: Props) {
-//   const analyses = getSavedAnalyses().filter(
-//     (analysis: SavedAnalysis) => analysis.profileType === "lluitador"
-//   );
+              <AnalysisSelector
+                label="Anàlisi recent"
+                description="Escull el combat que vols comparar amb l’anterior."
+                value={newAnalysisId}
+                analyses={analyses}
+                selectedAnalysis={newAnalysis}
+                disabled={isAnalyzing}
+                onChange={(value) => {
+                  setNewAnalysisId(value);
+                  setError("");
+                }}
+              />
+            </div>
 
-//   const metrics = buildMetrics(analyses);
-//   const positionTotals = buildPositionTotals(analyses);
+            {error && (
+              <div className="fighter-evolution-alert">
+                <strong>Error</strong>
+                <span>{error}</span>
+              </div>
+            )}
 
-//   if (!analyses.length) {
-//     return (
-//       <section className="analysis-container">
-//         <button type="button" className="back-button" onClick={onBack}>
-//           <ArrowLeftIcon />
-//         </button>
+            <button
+              type="button"
+              className="primary-button fighter-evolution-action"
+              disabled={!canAnalyze}
+              onClick={handleAnalyzeEvolution}
+            >
+              {isAnalyzing ? "Analitzant evolució..." : "Generar evolució"}
+            </button>
+          </section>
 
-//         <div className="analysis-card">
-//           <h2 className="analysis-main-title">Evolució</h2>
-//           <p className="analysis-empty">
-//             Encara no hi ha anàlisis guardades per calcular l’evolució.
-//           </p>
-//         </div>
-//       </section>
-//     );
-//   }
+          {result && <EvolutionResults result={result} />}
+        </>
+      )}
+    </section>
+  );
+}
 
-//   return (
-//     <section className="analysis-container">
-//       <button type="button" className="back-button" onClick={onBack}>
-//         <ArrowLeftIcon />
-//       </button>
+function AnalysisSelector({
+  label,
+  description,
+  value,
+  analyses,
+  selectedAnalysis,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  analyses: SavedAnalysis[];
+  selectedAnalysis?: SavedAnalysis;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <article className="fighter-evolution-selector-card">
+      <div>
+        <h4>{label}</h4>
+        <p>{description}</p>
+      </div>
 
-//       <div className="analysis-header">
-//         <div>
-//           <h2 className="analysis-main-title">Evolució del lluitador</h2>
-//           <p className="analysis-mode-label">
-//             Seguiment del rendiment a partir dels combats guardats.
-//           </p>
-//         </div>
-//       </div>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+      >
+        <option value="">Selecciona un anàlisi</option>
 
-//       <EvolutionSummary metrics={metrics} />
-//       <EvolutionCharts metrics={metrics} positionTotals={positionTotals} />
-//       <EvolutionPatterns analyses={analyses} />
-//     </section>
-//   );
-// }
+        {analyses.map((analysis) => (
+          <option key={analysis.id} value={analysis.id}>
+            {analysis.title} · {formatDate(getAnalysisDate(analysis))}
+          </option>
+        ))}
+      </select>
+
+      {selectedAnalysis && (
+        <div className="fighter-evolution-selected-analysis">
+          <strong>{selectedAnalysis.title}</strong>
+          <span>{formatDate(getAnalysisDate(selectedAnalysis))}</span>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function EvolutionResults({ result }: { result: FighterEvolutionResponse }) {
+  return (
+    <section className="fighter-evolution-results">
+      <div className="fighter-evolution-result-hero">
+        <span className="fighter-evolution-eyebrow">Informe generat</span>
+        <h3>Resum de l’evolució</h3>
+        <p>{result.summary}</p>
+      </div>
+
+      <div className="fighter-evolution-result-grid">
+        <ResultCard title="Millores detectades" items={result.improvements} />
+        <ResultCard title="Riscos o empitjoraments" items={result.regressions} />
+        <ResultCard title="Patrons que es mantenen" items={result.stablePatterns} />
+
+        <ResultTextCard
+          title="Evolució tècnica"
+          text={result.technicalEvolution}
+          wide
+        />
+
+        <ResultTextCard
+          title="Evolució tàctica"
+          text={result.tacticalEvolution}
+          wide
+        />
+
+        <ResultCard
+          title="Prioritats d’entrenament"
+          items={result.recommendedFocus}
+          wide
+        />
+
+        <ResultTextCard title="Conclusió" text={result.conclusion} wide />
+      </div>
+    </section>
+  );
+}
+
+function ResultCard({
+  title,
+  items,
+  wide = false,
+}: {
+  title: string;
+  items: string[];
+  wide?: boolean;
+}) {
+  return (
+    <article
+      className={`fighter-evolution-result-card ${
+        wide ? "fighter-evolution-result-card-wide" : ""
+      }`}
+    >
+      <h4>{title}</h4>
+
+      {items.length > 0 ? (
+        <ul>
+          {items.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>No hi ha dades suficients.</p>
+      )}
+    </article>
+  );
+}
+
+function ResultTextCard({
+  title,
+  text,
+  wide = false,
+}: {
+  title: string;
+  text: string;
+  wide?: boolean;
+}) {
+  return (
+    <article
+      className={`fighter-evolution-result-card ${
+        wide ? "fighter-evolution-result-card-wide" : ""
+      }`}
+    >
+      <h4>{title}</h4>
+      <p>{text}</p>
+    </article>
+  );
+}
+
+export default LluitadorEvolutionScreen;

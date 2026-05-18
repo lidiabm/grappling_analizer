@@ -67,8 +67,8 @@ export default function UploadForm({
     return "";
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFile = e.target.files?.[0] || null;
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.target.files?.[0] || null;
     setFile(selectedFile);
 
     if (selectedFile) {
@@ -76,6 +76,14 @@ export default function UploadForm({
     }
 
     if (error) setError("");
+  }
+
+  function handleClearFile() {
+    setFile(null);
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   }
 
   function buildAnalysisRequest(): AnalysisRequest {
@@ -118,8 +126,8 @@ export default function UploadForm({
     };
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
 
     const fileError = validateFile(file);
     if (fileError) {
@@ -144,9 +152,8 @@ export default function UploadForm({
       onStart();
 
       const request = buildAnalysisRequest();
-      console.log("REQUEST ANALYSIS:", request);
-
       const result = await analyzeVideo(file, request);
+
       onResult(result);
 
       setFile(null);
@@ -168,39 +175,66 @@ export default function UploadForm({
 
   return (
     <form onSubmit={handleSubmit} className="upload-form">
-      <div className="form-group">
+      <div className="upload-form-group">
         <label htmlFor="video">Vídeo del combat</label>
 
-        <div className="custom-file-input">
-          <label
-            htmlFor="video"
-            className={`file-button ${loading ? "file-button-disabled" : ""}`}
-          >
-            Selecciona un vídeo
-          </label>
+        <label
+          htmlFor="video"
+          className={`upload-dropzone ${loading ? "upload-dropzone-disabled" : ""}`}
+        >
+          <span className="upload-dropzone-icon">＋</span>
 
-          <span className="file-text">
-            {file ? file.name : "Cap fitxer seleccionat"}
+          <span className="upload-dropzone-content">
+            <strong>
+              {file ? "Vídeo seleccionat" : "Selecciona un vídeo"}
+            </strong>
+
+            <small>
+              {file
+                ? file.name
+                : `Format vídeo · màxim ${MAX_FILE_SIZE_MB} MB`}
+            </small>
           </span>
+        </label>
 
-          <input
-            ref={inputRef}
-            id="video"
-            type="file"
-            accept="video/*"
-            onChange={handleFileChange}
-            disabled={loading}
-            className="hidden-input"
-          />
-        </div>
+        <input
+          ref={inputRef}
+          id="video"
+          type="file"
+          accept="video/*"
+          onChange={handleFileChange}
+          disabled={loading}
+          className="upload-hidden-input"
+        />
+
+        {file && (
+          <div className="upload-file-preview">
+            <div>
+              <strong>{file.name}</strong>
+              <span>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+            </div>
+
+            <button
+              type="button"
+              className="upload-file-clear"
+              onClick={handleClearFile}
+              disabled={loading}
+            >
+              Treure
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="form-group">
+      <div className="upload-form-group">
         <label htmlFor="analysis-mode">Tipus d’anàlisi</label>
+
         <select
           id="analysis-mode"
           value={analysisMode}
-          onChange={(e) => setAnalysisMode(e.target.value as AnalysisMode)}
+          onChange={(event) =>
+            setAnalysisMode(event.target.value as AnalysisMode)
+          }
           disabled={loading}
         >
           <option value="full_fight">Combat complet</option>
@@ -211,14 +245,20 @@ export default function UploadForm({
       </div>
 
       {analysisMode === "single_athlete" && (
-        <div className="target-box">
-          <div className="form-group">
+        <div className="upload-target-box">
+          <div className="upload-target-header">
+            <span>Objectiu de l’anàlisi</span>
+            <p>Indica quin atleta vols seguir durant el combat.</p>
+          </div>
+
+          <div className="upload-form-group">
             <label htmlFor="identifier-type">Com identificar l’atleta</label>
+
             <select
               id="identifier-type"
               value={identifierType}
-              onChange={(e) =>
-                setIdentifierType(e.target.value as AthleteIdentifierType)
+              onChange={(event) =>
+                setIdentifierType(event.target.value as AthleteIdentifierType)
               }
               disabled={loading}
             >
@@ -229,13 +269,17 @@ export default function UploadForm({
           </div>
 
           {identifierType === "visual_description" && (
-            <div className="form-group">
+            <div className="upload-form-group">
               <label htmlFor="athlete-description">Descripció visual</label>
+
               <input
                 id="athlete-description"
                 type="text"
                 value={athleteDescription}
-                onChange={(e) => setAthleteDescription(e.target.value)}
+                onChange={(event) => {
+                  setAthleteDescription(event.target.value);
+                  setError("");
+                }}
                 placeholder="Ex: pantaló vermell i samarreta negra"
                 disabled={loading}
               />
@@ -243,12 +287,13 @@ export default function UploadForm({
           )}
 
           {identifierType === "screen_side" && (
-            <div className="form-group">
+            <div className="upload-form-group">
               <label htmlFor="screen-side">Costat</label>
+
               <select
                 id="screen-side"
                 value={screenSide}
-                onChange={(e) => setScreenSide(e.target.value)}
+                onChange={(event) => setScreenSide(event.target.value)}
                 disabled={loading}
               >
                 <option value="esquerra">Esquerra</option>
@@ -258,12 +303,13 @@ export default function UploadForm({
           )}
 
           {identifierType === "corner" && (
-            <div className="form-group">
+            <div className="upload-form-group">
               <label htmlFor="corner">Cantonada</label>
+
               <select
                 id="corner"
                 value={corner}
-                onChange={(e) => setCorner(e.target.value)}
+                onChange={(event) => setCorner(event.target.value)}
                 disabled={loading}
               >
                 <option value="vermella">Vermella</option>
@@ -274,7 +320,11 @@ export default function UploadForm({
         </div>
       )}
 
-      <button type="submit" disabled={loading || !file}>
+      <button
+        type="submit"
+        className="primary-button upload-submit-button"
+        disabled={loading || !file}
+      >
         {loading
           ? "Analitzant..."
           : analysisMode === "single_athlete"
@@ -283,17 +333,19 @@ export default function UploadForm({
       </button>
 
       {loading && (
-        <div className="info-box">
-          <p className="info-text">
-            Estem pujant el vídeo i generant l’anàlisi. Això pot tardar uns segons.
+        <div className="upload-info-box">
+          <strong>Processant vídeo</strong>
+          <p>
+            Estem pujant el vídeo i generant l’anàlisi. Això pot tardar uns
+            segons.
           </p>
         </div>
       )}
 
       {error && (
-        <div className="error-box" role="alert">
+        <div className="upload-error-box" role="alert">
           <strong>No s’ha pogut completar l’anàlisi</strong>
-          <p className="error-text">{error}</p>
+          <p>{error}</p>
         </div>
       )}
     </form>

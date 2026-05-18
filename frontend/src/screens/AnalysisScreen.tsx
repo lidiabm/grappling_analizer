@@ -3,7 +3,7 @@ import type { AnalysisResponse, UserProfile } from "../types";
 import UploadForm from "../components/UploadForm";
 import AnalysisResult from "../components/AnalysisResult";
 import ArrowLeftIcon from "../icons/ArrowLeftIcon";
-
+import "./AnalysisScreen.css";
 
 type Props = {
   profile: UserProfile;
@@ -13,8 +13,12 @@ type Props = {
 function AnalysisScreen({ profile, onBack }: Props) {
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState("combat-sense-titol");
-  
+  const [selectedFileName, setSelectedFileName] = useState(
+    "combat-sense-titol"
+  );
+
+  const isCoach = profile === "entrenador";
+
   function handleStart() {
     setIsAnalyzing(true);
     setResult(null);
@@ -26,42 +30,93 @@ function AnalysisScreen({ profile, onBack }: Props) {
   }
 
   return (
-    <div className="app-content">
-      <div className="selection-panel">
-        <button type="button" className="back-button" onClick={onBack}>
-          <ArrowLeftIcon size={20} />
-        </button>
-      </div>
+    <section className="analysis-screen app-content">
+      <button type="button" className="back-button" onClick={onBack}>
+        <ArrowLeftIcon size={20} />
+      </button>
 
-      <div className="upload-panel">
-        <UploadForm
-          profile={profile}
-          onStart={handleStart}
-          onResult={handleResult}
-          onFileSelected={setSelectedFileName}
-        />
-      </div>
+      <header className="analysis-screen-header">
+        <span className="analysis-screen-eyebrow">
+          Anàlisi de combat
+        </span>
 
-      <div className="result-panel">
-        {isAnalyzing && !result && (
-          <div className="result-placeholder">
-            <h2>Analitzant combat...</h2>
+        <h2 className="analysis-screen-title">
+          {isCoach
+            ? "Anàlisi per a entrenador"
+            : "Anàlisi per a lluitador"}
+        </h2>
+
+        <p className="analysis-screen-subtitle">
+          {isCoach
+            ? "Analitza combats complets o centra’t en un esportista concret per detectar patrons, errors i oportunitats de millora."
+            : "Analitza el teu combat per entendre millor el teu rendiment, les teves decisions i les situacions clau."}
+        </p>
+      </header>
+
+      <div className="analysis-screen-grid">
+        <section className="analysis-upload-card">
+          <div className="analysis-card-header">
+            <div>
+              <span className="analysis-card-eyebrow">
+                Entrada de vídeo
+              </span>
+
+              <h3>Pujar combat</h3>
+
+              <p>
+                Selecciona un vídeo i configura el tipus d’anàlisi que vols
+                generar.
+              </p>
+            </div>
           </div>
-        )}
 
-        {!isAnalyzing && !result && (
-          <div className="result-placeholder">
-            <h2>Encara no hi ha cap anàlisi</h2>
-          </div>
-        )}
+          <UploadForm
+            profile={profile}
+            onStart={handleStart}
+            onResult={handleResult}
+            onFileSelected={setSelectedFileName}
+          />
+        </section>
 
-        <AnalysisResult
-          result={result}
-          profile={profile}
-          fightId={selectedFileName}
-        />
+        <section className="analysis-result-card">
+          {isAnalyzing && !result && (
+            <div className="analysis-placeholder">
+              <div className="analysis-loading-spinner" />
+
+              <div>
+                <h3>Analitzant combat...</h3>
+
+                <p>
+                  La IA està processant el vídeo i generant l’informe tècnic.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!isAnalyzing && !result && (
+            <div className="analysis-placeholder">
+              <div className="analysis-placeholder-icon">◎</div>
+
+              <div>
+                <h3>Encara no hi ha cap anàlisi</h3>
+
+                <p>
+                  Puja un combat per generar un informe detallat del rendiment.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {result && (
+            <AnalysisResult
+              result={result}
+              profile={profile}
+              fightId={selectedFileName}
+            />
+          )}
+        </section>
       </div>
-    </div>
+    </section>
   );
 }
 

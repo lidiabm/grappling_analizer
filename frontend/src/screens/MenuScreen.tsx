@@ -1,4 +1,5 @@
 import type { UserProfile } from "../types";
+import "./MenuScreen.css";
 
 type Feature =
   | "entrenador-analysis"
@@ -21,44 +22,44 @@ const MENU_OPTIONS = {
     {
       feature: "entrenador-analysis",
       title: "Analitzar combat",
-      text: "Puja un vídeo i analitza el combat complet o centra’t en un lluitador concret.",
+      text: "Analitza un combat complet o centra’t en el rendiment d’un alumne concret.",
     },
     {
       feature: "entrenador-training-focus",
       title: "Focus d’entrenament",
-      text: "Detecta l’evolució real dels teus alumnes a partir de les seves dades.",
+      text: "Detecta patrons d’evolució i prioritats tècniques per planificar millor les sessions.",
     },
     {
       feature: "entrenador-scouting",
       title: "Scouting d’oponent",
-      text: "Puja diversos vídeos d’un rival i genera un informe tàctic per preparar el combat dels teus alumnes.",
+      text: "Genera un informe tàctic del rival a partir de diversos vídeos de combat.",
     },
     {
       feature: "entrenador-athletes",
       title: "Historial esportistes",
-      text: "Gestiona els anàlisis guardats, tant de combats generals com dels teus alumnes.",
+      text: "Consulta i gestiona els anàlisis guardats dels teus alumnes.",
     },
   ],
   lluitador: [
     {
       feature: "lluitador-analysis",
       title: "Analitzar combat",
-      text: "Puja un vídeo i analitza el combat complet o centra’t en el teu propi rendiment.",
+      text: "Analitza el teu combat i identifica punts forts, errors i accions de millora.",
     },
     {
       feature: "lluitador-scouting",
       title: "Scouting d’oponent",
-      text: "Puja vídeos del teu proper rival i rep una anàlisi clara dels seus punts forts, febleses i pla de combat recomanat.",
+      text: "Estudia el teu proper rival i prepara un pla de combat més precís.",
     },
     {
       feature: "lluitador-evolution",
       title: "Evolució",
-      text: "Consulta la teva progressió a partir dels combats guardats: domini, defensa, accions clau, patrons recurrents i prioritats de millora.",
+      text: "Revisa la teva progressió en domini, defensa, accions clau i patrons recurrents.",
     },
     {
       feature: "lluitador-history",
       title: "Historial",
-      text: "Consulta els teus anàlisis guardats i revisa combats anteriors amb detall.",
+      text: "Consulta els teus anàlisis guardats i revisa combats anteriors.",
     },
   ],
 } as const;
@@ -68,57 +69,60 @@ export default function MenuScreen({
   onSelectFeature,
   onSelectProfile,
 }: Props) {
-  const otherProfile: UserProfile =
-    profile === "lluitador" ? "entrenador" : "lluitador";
+  const isFighter = profile === "lluitador";
 
   return (
-    <>
-      <div className="profile-switcher profile-switcher-centered">
-        <button
-          type="button"
-          className={`profile-big-button profile-tab ${
-            profile === "lluitador" ? "profile-tab-active" : ""
-          }`}
-          onClick={() => onSelectProfile("lluitador")}
-        >
-          Lluitador
-        </button>
+    <section className="menu-screen app-content">
+        <header className="menu-header">
+            <span className="menu-eyebrow">Grappling Analyzer</span>
+        </header>
 
-        <button
-          type="button"
-          className={`profile-big-button profile-tab ${
-            profile === "entrenador" ? "profile-tab-active" : ""
-          }`}
-          onClick={() => onSelectProfile("entrenador")}
-        >
-          Entrenador
-        </button>
-      </div>
-
-      <div className="selection-panel">
-        <h2 className="section-title">
-          Funcionalitats per a:{" "}
-          <span className="highlight-text">{profile}</span>
-        </h2>
-
-        {profile === "lluitador" && (
-          <p className="selection-text">Escull què vols fer a continuació.</p>
-        )}
-
-        <div className="button-grid button-grid-features">
-          {MENU_OPTIONS[profile].map((option) => (
+        <div className="menu-profile-switcher">
             <button
-              key={option.feature}
-              type="button"
-              className="selection-button"
-              onClick={() => onSelectFeature(option.feature)}
+            type="button"
+            className={`menu-profile-tab ${
+                profile === "lluitador" ? "menu-profile-tab-active" : ""
+            }`}
+            onClick={() => onSelectProfile("lluitador")}
             >
-              <span className="selection-button-title">{option.title}</span>
-              <span className="selection-button-text">{option.text}</span>
+            <span>Lluitador</span>
+            <small>Rendiment personal</small>
             </button>
-          ))}
+
+            <button
+            type="button"
+            className={`menu-profile-tab ${
+                profile === "entrenador" ? "menu-profile-tab-active" : ""
+            }`}
+            onClick={() => onSelectProfile("entrenador")}
+            >
+            <span>Entrenador</span>
+            <small>Gestió d’alumnes</small>
+            </button>
         </div>
-      </div>
-    </>
+
+        <div className="menu-description">
+            <p className="menu-subtitle">
+            {isFighter
+                ? "Analitza el teu rendiment, estudia rivals i revisa la teva evolució tècnica."
+                : "Gestiona anàlisis, prepara entrenaments i obtén informació tàctica dels teus esportistes."}
+            </p>
+        </div>
+
+        <div className="menu-feature-grid">
+            {MENU_OPTIONS[profile].map((option) => (
+            <button
+                key={option.feature}
+                type="button"
+                className="menu-feature-card"
+                onClick={() => onSelectFeature(option.feature)}
+            >
+                <span className="menu-feature-title">{option.title}</span>
+                <span className="menu-feature-text">{option.text}</span>
+                <span className="menu-feature-link">Obrir →</span>
+            </button>
+            ))}
+        </div>
+        </section>
   );
 }

@@ -6,9 +6,16 @@ import type {
   UserProfile,
   ScoutingResponse,
   ScoutingVideoInput,
+  FighterEvolutionRequest,
+  FighterEvolutionResponse,
 } from "./types";
 
 const API_BASE_URL = "http://localhost:8000";
+
+type TrainingFocusOptions = {
+  chartWeeks: number;
+  focusWeeks: number;
+};
 
 async function getErrorMessage(response: Response) {
   let errorMessage = `Error ${response.status}`;
@@ -106,7 +113,8 @@ export async function analyzeScoutingVideos(
 }
 
 export async function calculateTrainingFocus(
-  analyses: SavedAnalysis[]
+  analyses: SavedAnalysis[],
+  options: TrainingFocusOptions
 ): Promise<TrainingFocusResponse> {
   const response = await fetch(`${API_BASE_URL}/training-focus`, {
     method: "POST",
@@ -115,7 +123,27 @@ export async function calculateTrainingFocus(
     },
     body: JSON.stringify({
       analyses,
+      chartWeeks: options.chartWeeks,
+      focusWeeks: options.focusWeeks,
     }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+export async function analyzeFighterEvolution(
+  payload: FighterEvolutionRequest
+): Promise<FighterEvolutionResponse> {
+  const response = await fetch(`${API_BASE_URL}/fighter-evolution`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

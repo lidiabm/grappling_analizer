@@ -1,0 +1,218 @@
+.menu-screen {
+  display: grid;
+  gap: 26px;
+  position: relative;
+  z-index: 1;
+}
+
+.menu-header {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  justify-items: center;
+}
+
+.menu-eyebrow {
+  width: fit-content;
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.menu-title {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.9rem, 3vw, 2.55rem);
+  font-weight: 950;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.menu-title span {
+  color: var(--gold);
+}
+
+.menu-subtitle {
+  max-width: 720px;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.menu-profile-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  justify-content: center;
+  gap: 14px;
+}
+
+.menu-profile-tab {
+  display: grid;
+  gap: 4px;
+  min-height: 82px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+    #0d1016;
+  color: var(--text);
+  text-align: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--transition-smooth),
+    border-color var(--transition-normal),
+    background var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.menu-profile-tab:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(180deg, rgba(193, 18, 31, 0.1), rgba(255, 255, 255, 0)),
+    #0d1016;
+}
+
+.menu-profile-tab span {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.menu-profile-tab small {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.menu-profile-tab-active {
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(180deg, rgba(193, 18, 31, 0.16), rgba(255, 255, 255, 0)),
+    #0d1016;
+  box-shadow:
+    0 0 0 1px rgba(193, 18, 31, 0.12),
+    var(--shadow-md);
+}
+
+.menu-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.menu-feature-card {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+  min-height: 190px;
+  padding: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0)),
+    #0d1016;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition:
+    transform var(--transition-smooth),
+    border-color var(--transition-normal),
+    background var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.menu-feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(193, 18, 31, 0.12), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(176, 141, 87, 0.08), transparent 30%);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  pointer-events: none;
+}
+
+.menu-feature-card:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(180deg, rgba(193, 18, 31, 0.09), rgba(255, 255, 255, 0)),
+    #0d1016;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.38);
+}
+
+.menu-feature-card:hover::before {
+  opacity: 1;
+}
+
+.menu-feature-title,
+.menu-feature-text,
+.menu-feature-link {
+  position: relative;
+  z-index: 1;
+}
+
+.menu-feature-title {
+  color: var(--text);
+  font-size: 1.18rem;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.menu-feature-text {
+  color: var(--text-soft);
+  line-height: 1.58;
+  font-weight: 500;
+}
+
+.menu-feature-link {
+  align-self: end;
+  color: var(--gold);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.menu-description {
+  display: flex;
+  justify-content: center;
+  margin-top: -6px;
+}
+
+.menu-description .menu-subtitle {
+  max-width: 760px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .menu-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-feature-card {
+    min-height: 160px;
+  }
+}
+
+@media (max-width: 520px) {
+  .menu-profile-switcher {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-title {
+    font-size: 1.65rem;
+  }
+
+  .menu-feature-card {
+    padding: 18px;
+  }
+}

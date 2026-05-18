@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { SavedAnalysis } from "../types";
 import { getSavedAnalyses, deleteAnalysis } from "../storage/analysisStorage";
 import AnalysisResult from "../components/AnalysisResult";
-import "./HistoryScreen.css";
 import ArrowLeftIcon from "../icons/ArrowLeftIcon";
+import "./HistoryScreen.css";
 
 type Props = {
   onBack: () => void;
@@ -19,6 +19,16 @@ function getAnalysisTypeFolder(analysis: SavedAnalysis): AnalysisTypeFolder {
 
 function getAnalysisTypeLabel(type: AnalysisTypeFolder) {
   return type === "own" ? "Anàlisis propis" : "Anàlisis complets";
+}
+
+function formatDate(value?: string) {
+  if (!value) return "Sense data";
+
+  return new Date(value).toLocaleDateString("ca-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export default function HistoryScreen({
@@ -72,7 +82,7 @@ export default function HistoryScreen({
     );
   }, [analyses]);
 
-  const handleDeleteAnalysis = (id: string) => {
+  function handleDeleteAnalysis(id: string) {
     const confirmDelete = window.confirm(
       "Segur que vols eliminar aquesta anàlisi?"
     );
@@ -81,24 +91,22 @@ export default function HistoryScreen({
 
     deleteAnalysis(id);
 
-    setAnalyses((current) =>
-      current.filter((analysis) => analysis.id !== id)
-    );
+    setAnalyses((current) => current.filter((analysis) => analysis.id !== id));
 
     if (selectedAnalysis?.id === id) {
       setSelectedAnalysis(null);
     }
-  };
+  }
 
   if (selectedAnalysis) {
     return (
-      <div className="history-detail">
+      <section className="history-screen app-content">
         <button
           type="button"
           className="back-button"
           onClick={() => setSelectedAnalysis(null)}
         >
-          <ArrowLeftIcon size={20} />
+          <ArrowLeftIcon />
         </button>
 
         <AnalysisResult
@@ -108,7 +116,7 @@ export default function HistoryScreen({
           showSaveButton={false}
           onDelete={() => handleDeleteAnalysis(selectedAnalysis.id)}
         />
-      </div>
+      </section>
     );
   }
 
@@ -116,27 +124,27 @@ export default function HistoryScreen({
     const selectedAnalyses = analysesByType[selectedTypeFolder];
 
     return (
-      <div className="history-screen">
+      <section className="history-screen app-content">
         <button
           type="button"
           className="back-button"
           onClick={() => setSelectedTypeFolder(null)}
         >
-          <ArrowLeftIcon size={20} />
+          <ArrowLeftIcon />
         </button>
 
-        <div className="history-header">
-          <h1 className="history-title">
-            {getAnalysisTypeLabel(selectedTypeFolder)}
-          </h1>
-        </div>
+        <HistoryHeader
+          eyebrow="Carpeta"
+          title={getAnalysisTypeLabel(selectedTypeFolder)}
+          subtitle="Consulta les anàlisis guardades en aquesta carpeta."
+        />
 
         <AnalysisList
           analyses={selectedAnalyses}
           onSelectAnalysis={setSelectedAnalysis}
           onDeleteAnalysis={handleDeleteAnalysis}
         />
-      </div>
+      </section>
     );
   }
 
@@ -144,28 +152,27 @@ export default function HistoryScreen({
     const studentAnalyses = analysesByStudent[selectedStudentFolder] ?? [];
 
     return (
-      <div className="history-screen">
+      <section className="history-screen app-content">
         <button
           type="button"
           className="back-button"
           onClick={() => setSelectedStudentFolder(null)}
         >
-          <ArrowLeftIcon size={20} />
+          <ArrowLeftIcon />
         </button>
 
-        <div className="history-header">
-          <h1 className="history-title">{selectedStudentFolder}</h1>
-          <p className="history-subtitle">
-            Anàlisis guardades per aquest alumne.
-          </p>
-        </div>
+        <HistoryHeader
+          eyebrow="Alumne"
+          title={selectedStudentFolder}
+          subtitle="Anàlisis guardades per aquest alumne."
+        />
 
         <AnalysisList
           analyses={studentAnalyses}
           onSelectAnalysis={setSelectedAnalysis}
           onDeleteAnalysis={handleDeleteAnalysis}
         />
-      </div>
+      </section>
     );
   }
 
@@ -173,20 +180,19 @@ export default function HistoryScreen({
     const studentFolders = Object.entries(analysesByStudent);
 
     return (
-      <div className="history-screen">
+      <section className="history-screen app-content">
         <button type="button" className="back-button" onClick={onBack}>
-          <ArrowLeftIcon size={20} />
+          <ArrowLeftIcon />
         </button>
 
-        <div className="history-header">
-          <h1 className="history-title">{title}</h1>
-          <p className="history-subtitle">
-            Selecciona una carpeta per veure les anàlisis guardades.
-          </p>
-        </div>
+        <HistoryHeader
+          eyebrow="Historial d’entrenador"
+          title={title}
+          subtitle="Selecciona una carpeta per consultar les anàlisis guardades."
+        />
 
         {analyses.length === 0 ? (
-          <div className="history-empty">No hi ha anàlisis guardades.</div>
+          <HistoryEmpty text="No hi ha anàlisis guardades." />
         ) : (
           <FolderGrid
             folders={[
@@ -203,25 +209,24 @@ export default function HistoryScreen({
             ]}
           />
         )}
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="history-screen">
+    <section className="history-screen app-content">
       <button type="button" className="back-button" onClick={onBack}>
-        <ArrowLeftIcon size={20} />
+        <ArrowLeftIcon />
       </button>
 
-      <div className="history-header">
-        <h1 className="history-title">{title}</h1>
-        <p className="history-subtitle">
-          Selecciona el tipus d’anàlisi que vols consultar.
-        </p>
-      </div>
+      <HistoryHeader
+        eyebrow="Historial de lluitador"
+        title={title}
+        subtitle="Selecciona el tipus d’anàlisi que vols consultar."
+      />
 
       {analyses.length === 0 ? (
-        <div className="history-empty">No hi ha anàlisis guardades.</div>
+        <HistoryEmpty text="No hi ha anàlisis guardades." />
       ) : (
         <FolderGrid
           folders={[
@@ -238,6 +243,34 @@ export default function HistoryScreen({
           ]}
         />
       )}
+    </section>
+  );
+}
+
+function HistoryHeader({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <header className="history-header">
+      <span className="history-eyebrow">{eyebrow}</span>
+      <h2 className="history-title">{title}</h2>
+      <p className="history-subtitle">{subtitle}</p>
+    </header>
+  );
+}
+
+function HistoryEmpty({ text }: { text: string }) {
+  return (
+    <div className="history-empty">
+      <span className="history-eyebrow">Sense dades</span>
+      <h3>Encara no hi ha contingut</h3>
+      <p>{text}</p>
     </div>
   );
 }
@@ -268,8 +301,6 @@ function FolderGrid({
               {folder.count} anàlisi{folder.count !== 1 ? "s" : ""}
             </span>
           </div>
-
-          <span className="history-folder-arrow">Obrir →</span>
         </button>
       ))}
     </div>
@@ -287,44 +318,44 @@ function AnalysisList({
 }) {
   if (analyses.length === 0) {
     return (
-      <div className="history-empty">
-        No hi ha anàlisis guardades en aquesta carpeta.
-      </div>
+      <HistoryEmpty text="No hi ha anàlisis guardades en aquesta carpeta." />
     );
   }
 
   return (
     <div className="history-list">
       {analyses.map((analysis) => (
-        <div key={analysis.id} className="history-item">
+        <article key={analysis.id} className="history-item">
           <button
             type="button"
             onClick={() => onSelectAnalysis(analysis)}
             className="history-item-content"
           >
-            <div className="history-item-top">
+            <div>
               <strong className="history-item-title">{analysis.title}</strong>
 
-              <span className="history-item-date">
-                {analysis.fightDate
-                  ? new Date(analysis.fightDate).toLocaleDateString("ca-ES")
-                  : "Sense data"}
+              <span className="history-item-meta">
+                {getAnalysisTypeLabel(getAnalysisTypeFolder(analysis))}
               </span>
             </div>
+
+            <span className="history-item-date">
+              {formatDate(analysis.fightDate)}
+            </span>
           </button>
 
           <button
             type="button"
             className="history-delete-button"
-            onClick={(e) => {
-                e.stopPropagation(); 
-                onDeleteAnalysis(analysis.id);
+            onClick={(event) => {
+              event.stopPropagation();
+              onDeleteAnalysis(analysis.id);
             }}
             aria-label="Eliminar anàlisi"
-            >
+          >
             ✕
           </button>
-        </div>
+        </article>
       ))}
     </div>
   );

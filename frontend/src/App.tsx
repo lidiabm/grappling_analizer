@@ -6,8 +6,9 @@ import MenuScreen from "./screens/MenuScreen";
 import AnalysisScreen from "./screens/AnalysisScreen";
 import PlaceholderScreen from "./screens/PlaceholderScreen";
 import HistoryScreen from "./screens/HistoryScreen";
-import EntrenadorTrainingFocusScreen from "./screens/EntrenadorTrainingFocusScreen";
+import EntrenadorTrainingFocusScreen from "./screens/TrainingFocusScreen";
 import ScoutingScreen from "./screens/ScoutingScreen";
+import LluitadorEvolutionScreen from "./screens/LluitadorEvolutionScreen";
 
 type Screen =
   | "home"
@@ -100,8 +101,7 @@ function App() {
 
       case "lluitador-evolution":
         return (
-          <PlaceholderScreen
-            title="Evolució"
+          <LluitadorEvolutionScreen
             onBack={() => setScreen("lluitador-menu")}
           />
         );

@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import { analyzeScoutingVideos } from "../api";
 import type { ScoutingResponse, ScoutingVideoInput } from "../types";
-import "./ScoutingScreen.css";
 import ScoutingCharts from "../components/charts/ScoutingCharts";
 import ArrowLeftIcon from "../icons/ArrowLeftIcon";
+import "./ScoutingScreen.css";
 
 type Props = {
   profile: "entrenador" | "lluitador";
@@ -111,45 +111,42 @@ function ScoutingScreen({ profile, onBack }: Props) {
   }
 
   return (
-    <section className="scouting-page">
-      <button
-        type="button"
-        className="scouting-back-button"
-        onClick={onBack}
-      >
-        <ArrowLeftIcon size={18} />
+    <section className="scouting-screen app-content">
+      <button type="button" className="back-button" onClick={onBack}>
+        <ArrowLeftIcon />
       </button>
 
-      <header className="scouting-hero">
+      <header className="scouting-header">
         <div>
-          <span className="scouting-kicker">Scouting d’oponent</span>
+          <span className="scouting-eyebrow">Scouting d’oponent</span>
 
-          <h2>
+          <h2 className="scouting-title">
             Informe tàctic per a{" "}
             <span>{isCoach ? "entrenador" : "lluitador"}</span>
           </h2>
 
-          <p>
+          <p className="scouting-subtitle">
             {isCoach
-              ? "Afegeix combats d’un rival per detectar patrons, punts forts i debilitats, i generar recomanacions tàctiques i exercicis per preparar els teus alumnes."
-              : "Afegeix vídeos del teu rival per identificar patrons repetits, amenaces principals i oportunitats concretes per construir el teu pla de combat."}
+              ? "Analitza combats d’un rival per detectar patrons, punts forts, debilitats i preparar millor els teus alumnes."
+              : "Analitza vídeos del teu rival per identificar patrons repetits, amenaces principals i oportunitats concretes de combat."}
           </p>
         </div>
 
-        <div className="scouting-hero-badge">
+        <div className="scouting-counter-card">
           <strong>{videos.length}</strong>
-          <small>vídeos afegits</small>
+          <span>vídeos afegits</span>
         </div>
       </header>
 
       <div className="scouting-grid">
         <section className="scouting-card scouting-card-main">
-          <div className="scouting-card-header">
-            <div>
-              <h3>Afegir vídeo</h3>
-              <p>Selecciona un vídeo, descriu el rival i afegeix-lo a la llista.</p>
-            </div>
-
+          <div className="scouting-section-heading">
+            <span className="scouting-eyebrow">Nou vídeo</span>
+            <h3>Afegir combat</h3>
+            <p>
+              Selecciona un vídeo, identifica el rival i afegeix-lo a la llista
+              abans de generar el scouting.
+            </p>
           </div>
 
           <label className="scouting-upload">
@@ -183,6 +180,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
               <button
                 type="button"
+                className="secondary-button"
                 onClick={() => {
                   setSelectedFile(null);
 
@@ -214,7 +212,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
           <button
             type="button"
-            className="scouting-secondary-button"
+            className="secondary-button"
             onClick={handleAddVideoToList}
             disabled={isAnalyzing}
           >
@@ -223,22 +221,21 @@ function ScoutingScreen({ profile, onBack }: Props) {
         </section>
 
         <aside className="scouting-card scouting-info-card">
-          <div className="scouting-card-header">
-            <div>
-              <h3>Què analitzarà?</h3>
-              <p>
-                {isCoach
-                  ? "La IA generarà informació útil per planificar la preparació dels teus esportistes."
-                  : "La IA generarà informació pràctica per ajudar-te a competir contra aquest rival."}
-              </p>
-            </div>
+          <div className="scouting-section-heading">
+            <span className="scouting-eyebrow">Anàlisi</span>
+            <h3>Què analitzarà?</h3>
+            <p>
+              {isCoach
+                ? "La IA generarà informació útil per preparar els teus esportistes."
+                : "La IA generarà informació pràctica per competir contra aquest rival."}
+            </p>
           </div>
 
           <ul className="scouting-check-list">
             {isCoach ? (
               <>
                 <li>Patrons ofensius i defensius del rival.</li>
-                <li>Situacions on el rival genera més perill.</li>
+                <li>Situacions on genera més perill.</li>
                 <li>Debilitats explotables pels teus alumnes.</li>
                 <li>Pla tàctic, focus d’entrenament i exercicis recomanats.</li>
               </>
@@ -247,7 +244,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
                 <li>Punts forts i amenaces principals del rival.</li>
                 <li>Accions que repeteix amb més freqüència.</li>
                 <li>Errors o moments on es pot atacar.</li>
-                <li>Pla de combat resumit amb què fer i què evitar.</li>
+                <li>Pla de combat amb què fer i què evitar.</li>
               </>
             )}
           </ul>
@@ -256,10 +253,9 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
       {videos.length > 0 && (
         <section className="scouting-card">
-          <div className="scouting-card-header">
-            <div>
-              <h3>Vídeos afegits al scouting</h3>
-            </div>
+          <div className="scouting-section-heading">
+            <span className="scouting-eyebrow">Llista</span>
+            <h3>Vídeos afegits</h3>
           </div>
 
           <div className="scouting-video-list">
@@ -296,7 +292,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
       <button
         type="button"
-        className="scouting-primary-button"
+        className="primary-button scouting-generate-button"
         onClick={handleGenerateScouting}
         disabled={isAnalyzing}
       >
@@ -305,11 +301,11 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
       {result && (
         <section className="scouting-result">
-          <div className="scouting-result-header">
-            <span>Informe generat</span>
+          <header className="scouting-result-header">
+            <span className="scouting-eyebrow">Informe generat</span>
             <h3>Scouting del rival</h3>
             <p>{result.resum_rival}</p>
-          </div>
+          </header>
 
           <div className="scouting-result-grid scouting-result-grid-main">
             <ResultBlock

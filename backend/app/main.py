@@ -10,9 +10,11 @@ from app.config import settings
 from app.services.analysis_service import analyze_video
 from app.services.training_focus_service import build_training_focus_response
 from app.services.scouting_service import analyze_scouting_videos
+from app.services.fighter_evolution_service import analyze_fighter_evolution
 
 from app.schemas.scouting import ScoutingResponse
-from app.schemas.analysis import (AnalysisResponse, SingleAthleteAnalysisResponse, )
+from app.schemas.analysis import (AnalysisResponse, SingleAthleteAnalysisResponse)
+from app.schemas.evolution import (FighterEvolutionRequest, FighterEvolutionResponse)
 
 app = FastAPI(title="Grappling Analyzer API")
 
@@ -126,11 +128,9 @@ async def analyze(
     
 @app.post("/training-focus")
 async def training_focus(payload: dict):
-    print("ENTRA EN /training-focus")
-    print("Payload keys:", payload.keys())
-
     analyses = payload.get("analyses")
-    print("Num analyses:", len(analyses) if isinstance(analyses, list) else "NO LIST")
+    chart_weeks = payload.get("chartWeeks", 10)
+    focus_weeks = payload.get("focusWeeks", 3)
 
     if not isinstance(analyses, list):
         raise HTTPException(
@@ -138,7 +138,20 @@ async def training_focus(payload: dict):
             detail="El camp 'analyses' ha de ser una llista.",
         )
 
-    return build_training_focus_response(analyses)
+    try:
+        chart_weeks = int(chart_weeks)
+        focus_weeks = int(focus_weeks)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail="'chartWeeks' i 'focusWeeks' han de ser números.",
+        )
+
+    return build_training_focus_response(
+        analyses,
+        chart_weeks=chart_weeks,
+        focus_weeks=focus_weeks,
+    )
 
 @app.post(
     "/scouting",
@@ -227,4 +240,52 @@ async def scouting(
         raise HTTPException(
             status_code=500,
             detail=f"Error fent scouting: {message}",
+        )
+    
+
+@app.post(
+    "/fighter-evolution",
+    response_model=FighterEvolutionResponse,
+)
+async def fighter_evolution(
+    payload: FighterEvolutionRequest,
+):
+    try:
+        result = analyze_fighter_evolution(
+            old_analysis=payload.old_analysis,
+            new_analysis=payload.new_analysis,
+        )
+
+        if not isinstance(result, dict):
+            raise HTTPException(
+                status_code=500,
+                detail="La resposta de l’evolució no és JSON vàlid.",
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        print("ERROR A /fighter-evolution:")
+        traceback.print_exc()
+
+        message = str(e)
+
+        if "429" in message or "RESOURCE_EXHAUSTED" in message:
+            raise HTTPException(
+                status_code=429,
+                detail="S'ha superat la quota de Gemini.",
+            )
+
+        if "503" in message or "UNAVAILABLE" in message:
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini està saturat temporalment.",
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generant evolució: {message}",
         )

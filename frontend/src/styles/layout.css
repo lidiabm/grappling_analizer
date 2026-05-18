@@ -3,21 +3,21 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 32px 20px 40px;
+  padding: 34px 20px 44px;
 }
 
 .app-card {
   position: relative;
   width: 100%;
-  max-width: 960px;
-  padding: 32px;
+  max-width: 1040px;
+  padding: 34px;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: var(--radius-xl);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)),
     var(--surface);
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -26,8 +26,24 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(135deg, rgba(193, 18, 31, 0.12), transparent 22%),
-    linear-gradient(315deg, rgba(176, 141, 87, 0.08), transparent 18%);
+    linear-gradient(135deg, rgba(193, 18, 31, 0.13), transparent 24%),
+    linear-gradient(315deg, rgba(176, 141, 87, 0.09), transparent 20%);
+  pointer-events: none;
+}
+
+.app-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 28px;
+  right: 28px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
   pointer-events: none;
 }
 
@@ -37,12 +53,12 @@
 .profile-big-buttons {
   position: relative;
   z-index: 1;
-  animation: fadeSlideDown 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: fadeSlideDown 0.5s var(--transition-smooth);
 }
 
 .app-content {
   display: grid;
-  gap: 22px;
+  gap: 24px;
 }
 
 .selection-panel {
@@ -67,20 +83,51 @@
 
 .info-grid {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-@media (max-width: 900px) {
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.screen-header-content {
+  display: grid;
+  gap: 4px;
+}
+
+.screen-header-content h2 {
+  margin: 0;
+}
+
+@media (max-width: 960px) {
   .app-shell {
-    padding: 24px 16px 32px;
+    padding: 24px 16px 34px;
   }
 
   .app-card {
-    padding: 24px;
+    padding: 26px;
   }
 
   .button-grid,
   .button-grid-features {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    padding: 18px 12px 28px;
+  }
+
+  .app-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .screen-header {
+    align-items: flex-start;
   }
 }

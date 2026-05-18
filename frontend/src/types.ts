@@ -1,17 +1,11 @@
-/* =========================
-   CORE TYPES
-========================= */
-
+/* CORE TYPES */
 export type UserProfile = "lluitador" | "entrenador";
 export type OponentId = "oponent_1" | "oponent_2" | "desconegut";
 export type Confianca = "alta" | "mitjana" | "baixa";
 
 export type AnalysisMode = "full_fight" | "single_athlete";
 
-/* =========================
-   REQUEST
-========================= */
-
+/* REQUEST */
 export type AthleteIdentifierType =
   | "visual_description"
   | "screen_side"
@@ -28,10 +22,7 @@ export interface AnalysisRequest {
   athlete_identifier?: AthleteIdentifier;
 }
 
-/* =========================
-   COMBAT STRUCTURE
-========================= */
-
+/* COMBAT STRUCTURE */
 export interface OponentInfo {
   id: "oponent_1" | "oponent_2";
   nom_visible: string;
@@ -68,10 +59,7 @@ export interface TimelineEvent {
   confianca: Confianca;
 }
 
-/* =========================
-   ANALYSIS CONTENT
-========================= */
-
+/* ANALYSIS CONTENT */
 export interface ErrorDetallat {
   error: string;
   moment_aproximat: string;
@@ -106,10 +94,7 @@ export interface AnalisiOponents {
   oponent_2: AnalisiOponent;
 }
 
-/* =========================
-   STATS
-========================= */
-
+/* STATS */
 export interface TempsPerPosicio {
   lluitador: string;
   posicio: string;
@@ -145,10 +130,7 @@ export interface PatronsGlobals {
   resum_comparable: string[];
 }
 
-/* =========================
-   RESPONSES
-========================= */
-
+/* RESPONSES */
 export interface FullFightAnalysisResponse {
   mode: "full_fight";
   selected_oponent_id: "desconegut";
@@ -180,10 +162,7 @@ export type AnalysisResponse =
   | FullFightAnalysisResponse
   | SingleAthleteAnalysisResponse;
 
-/* =========================
-   STORAGE
-========================= */
-
+/* STORAGE */
 export type SavedAnalysis = {
   id: string;
   title: string;
@@ -195,9 +174,7 @@ export type SavedAnalysis = {
   result: AnalysisResponse;
 };
 
-/* =========================
-   EVOLUTION / TRAINING FOCUS
-========================= */
+/* EVOLUTION / TRAINING FOCUS */
 export type EvolutionMetric = {
   fightId: string;
   label: string;
@@ -246,9 +223,7 @@ export type TrainingFocusResponse = {
   students: StudentFocus[];
 };
 
-/* =========================
-   SCOUTING
-========================= */
+/* SCOUTING */
 
 export interface ScoutingRivalInfo {
   nom_visible: string;
@@ -324,4 +299,20 @@ export type ScoutingChart = {
   dades: ScoutingChartDatum[];
   escala?: string;
   interpretacio?: string;
+};
+
+export type FighterEvolutionRequest = {
+  old_analysis: AnalysisResponse;
+  new_analysis: AnalysisResponse;
+};
+
+export type FighterEvolutionResponse = {
+  summary: string;
+  improvements: string[];
+  regressions: string[];
+  stablePatterns: string[];
+  technicalEvolution: string;
+  tacticalEvolution: string;
+  recommendedFocus: string[];
+  conclusion: string;
 };
