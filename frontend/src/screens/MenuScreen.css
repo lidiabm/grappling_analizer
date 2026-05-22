@@ -51,6 +51,7 @@
 
 .menu-profile-tab {
   display: grid;
+  place-items: center;
   gap: 4px;
   min-height: 82px;
   padding: 16px 18px;

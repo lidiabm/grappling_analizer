@@ -7,7 +7,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.services.analysis_service import analyze_video
+from app.services.analysis_service2 import analyze_video
 from app.services.training_focus_service import build_training_focus_response
 from app.services.scouting_service import analyze_scouting_videos
 from app.services.fighter_evolution_service import analyze_fighter_evolution

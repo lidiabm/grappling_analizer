@@ -3,7 +3,7 @@ import re
 import time
 
 from app.services.gemini_client import client
-from app.prompts.evolution_prompt import build_evolution_prompt
+from app.prompts.evolution_prompt2 import build_evolution_prompt
 
 
 def _strip_code_fences(text: str) -> str:
@@ -28,14 +28,73 @@ def _extract_json_object(text: str) -> str:
 
 def _safe_parse_response(text: str) -> dict:
     fallback = {
-        "summary": "",
-        "improvements": [],
+        "mode": "evolucio",
+        "analysis_type": "evolucio_lluitador",
+        "fighter_info": {
+            "nom_visible": "desconegut",
+            "descripcio_visual": "desconegut",
+            "confianca_analisi": "baixa",
+        },
+        "resum_evolucio": "",
+        "magnitud_canvi_global": "baixa",
+        "millores": [],
         "regressions": [],
-        "stablePatterns": [],
-        "technicalEvolution": "",
-        "tacticalEvolution": "",
-        "recommendedFocus": [],
-        "conclusion": "",
+        "patrons_estables": {
+            "fortaleses_consolidades": [],
+            "debilitats_persistents": [],
+        },
+        "evolucio_tactica": {
+            "model_antic": "",
+            "model_recent": "",
+            "canvi_observat": "",
+            "interpretacio": "",
+        },
+        "evolucio_tecnica": {
+            "tecniques_millorades": [],
+            "tecniques_empitjorades": [],
+            "tecniques_noves": [],
+            "tecniques_abandonades": [],
+        },
+        "comparativa_numerica": {
+            "nota": "No hi ha dades suficients.",
+            "disponible": False,
+            "perfil_antic": {
+                "pressio": -1,
+                "agressivitat": -1,
+                "control_posicional": -1,
+                "defensa": -1,
+                "perill_submissio": -1,
+                "explosivitat": -1,
+                "adaptabilitat": -1,
+            },
+            "perfil_recent": {
+                "pressio": -1,
+                "agressivitat": -1,
+                "control_posicional": -1,
+                "defensa": -1,
+                "perill_submissio": -1,
+                "explosivitat": -1,
+                "adaptabilitat": -1,
+            },
+            "deltes": {
+                "nota": "No calculable.",
+                "pressio": None,
+                "agressivitat": None,
+                "control_posicional": None,
+                "defensa": None,
+                "perill_submissio": None,
+                "explosivitat": None,
+                "adaptabilitat": None,
+            },
+        },
+        "grafics_suggerits": [],
+        "recomanacions_entrenament": {
+            "prioritat_alta": [],
+            "prioritat_mitjana": [],
+            "manteniment": [],
+        },
+        "conclusio": "",
+        "incerteses": ["No s'ha pogut parsejar correctament la resposta del model."],
     }
 
     if not text or not text.strip():
@@ -44,30 +103,19 @@ def _safe_parse_response(text: str) -> dict:
     try:
         cleaned = _strip_code_fences(text)
         cleaned = _extract_json_object(cleaned)
-
         data = json.loads(cleaned)
 
         if not isinstance(data, dict):
             return fallback
 
-        return {
-            "summary": data.get("summary", ""),
-            "improvements": data.get("improvements", []),
-            "regressions": data.get("regressions", []),
-            "stablePatterns": data.get("stablePatterns", []),
-            "technicalEvolution": data.get("technicalEvolution", ""),
-            "tacticalEvolution": data.get("tacticalEvolution", ""),
-            "recommendedFocus": data.get("recommendedFocus", []),
-            "conclusion": data.get("conclusion", ""),
-        }
+        return {**fallback, **data}
 
     except Exception as e:
         print("ERROR PARSEJANT EVOLUTION JSON")
         print(str(e))
-
+        print(text)
         return fallback
-
-
+    
 def _generate_content_with_retry(prompt: str, retries: int = 3):
     last_error = None
 

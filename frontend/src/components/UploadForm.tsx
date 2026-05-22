@@ -3,7 +3,6 @@ import type {
   AnalysisMode,
   AnalysisRequest,
   AnalysisResponse,
-  AthleteIdentifierType,
   UserProfile,
 } from "../types";
 import { analyzeVideo } from "../api";
@@ -31,12 +30,7 @@ export default function UploadForm({
   const [analysisMode, setAnalysisMode] =
     useState<AnalysisMode>("full_fight");
 
-  const [identifierType, setIdentifierType] =
-    useState<AthleteIdentifierType>("visual_description");
-
   const [athleteDescription, setAthleteDescription] = useState("");
-  const [screenSide, setScreenSide] = useState("esquerra");
-  const [corner, setCorner] = useState("vermella");
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -57,11 +51,8 @@ export default function UploadForm({
   function validateAthleteTarget(): string {
     if (analysisMode !== "single_athlete") return "";
 
-    if (
-      identifierType === "visual_description" &&
-      !athleteDescription.trim()
-    ) {
-      return "Descriu l’atleta que vols analitzar";
+    if (!athleteDescription.trim()) {
+      return "Descriu visualment l’atleta que vols analitzar";
     }
 
     return "";
@@ -94,34 +85,12 @@ export default function UploadForm({
       };
     }
 
-    if (identifierType === "visual_description") {
-      return {
-        profile,
-        mode: "single_athlete",
-        athlete_identifier: {
-          type: "visual_description",
-          value: athleteDescription.trim(),
-        },
-      };
-    }
-
-    if (identifierType === "screen_side") {
-      return {
-        profile,
-        mode: "single_athlete",
-        athlete_identifier: {
-          type: "screen_side",
-          value: screenSide,
-        },
-      };
-    }
-
     return {
       profile,
       mode: "single_athlete",
       athlete_identifier: {
-        type: "corner",
-        value: corner,
+        type: "visual_description",
+        value: athleteDescription.trim(),
       },
     };
   }
@@ -158,10 +127,7 @@ export default function UploadForm({
 
       setFile(null);
       setAnalysisMode("full_fight");
-      setIdentifierType("visual_description");
       setAthleteDescription("");
-      setScreenSide("esquerra");
-      setCorner("vermella");
 
       if (inputRef.current) {
         inputRef.current.value = "";
@@ -176,11 +142,13 @@ export default function UploadForm({
   return (
     <form onSubmit={handleSubmit} className="upload-form">
       <div className="upload-form-group">
-        <label htmlFor="video">Vídeo del combat</label>
+        <label htmlFor="video"></label>
 
         <label
           htmlFor="video"
-          className={`upload-dropzone ${loading ? "upload-dropzone-disabled" : ""}`}
+          className={`upload-dropzone ${
+            loading ? "upload-dropzone-disabled" : ""
+          }`}
         >
           <span className="upload-dropzone-icon">＋</span>
 
@@ -248,75 +216,24 @@ export default function UploadForm({
         <div className="upload-target-box">
           <div className="upload-target-header">
             <span>Objectiu de l’anàlisi</span>
-            <p>Indica quin atleta vols seguir durant el combat.</p>
+            <p>Descriu visualment quin atleta vols seguir durant el combat.</p>
           </div>
 
           <div className="upload-form-group">
-            <label htmlFor="identifier-type">Com identificar l’atleta</label>
+            <label htmlFor="athlete-description">Descripció visual</label>
 
-            <select
-              id="identifier-type"
-              value={identifierType}
-              onChange={(event) =>
-                setIdentifierType(event.target.value as AthleteIdentifierType)
-              }
+            <input
+              id="athlete-description"
+              type="text"
+              value={athleteDescription}
+              onChange={(event) => {
+                setAthleteDescription(event.target.value);
+                setError("");
+              }}
+              placeholder="Ex: pantaló vermell i samarreta negra"
               disabled={loading}
-            >
-              <option value="visual_description">Descripció visual</option>
-              <option value="screen_side">Costat de la pantalla</option>
-              <option value="corner">Cantonada</option>
-            </select>
+            />
           </div>
-
-          {identifierType === "visual_description" && (
-            <div className="upload-form-group">
-              <label htmlFor="athlete-description">Descripció visual</label>
-
-              <input
-                id="athlete-description"
-                type="text"
-                value={athleteDescription}
-                onChange={(event) => {
-                  setAthleteDescription(event.target.value);
-                  setError("");
-                }}
-                placeholder="Ex: pantaló vermell i samarreta negra"
-                disabled={loading}
-              />
-            </div>
-          )}
-
-          {identifierType === "screen_side" && (
-            <div className="upload-form-group">
-              <label htmlFor="screen-side">Costat</label>
-
-              <select
-                id="screen-side"
-                value={screenSide}
-                onChange={(event) => setScreenSide(event.target.value)}
-                disabled={loading}
-              >
-                <option value="esquerra">Esquerra</option>
-                <option value="dreta">Dreta</option>
-              </select>
-            </div>
-          )}
-
-          {identifierType === "corner" && (
-            <div className="upload-form-group">
-              <label htmlFor="corner">Cantonada</label>
-
-              <select
-                id="corner"
-                value={corner}
-                onChange={(event) => setCorner(event.target.value)}
-                disabled={loading}
-              >
-                <option value="vermella">Vermella</option>
-                <option value="blava">Blava</option>
-              </select>
-            </div>
-          )}
         </div>
       )}
 

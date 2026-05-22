@@ -12,14 +12,11 @@ function HomeScreen({ onSelectProfile }: Props) {
         <span className="home-eyebrow">Grappling Analyzer</span>
 
         <h1 className="home-title">
-          Analitza combats.
-          <br />
-          Millora decisions.
+          Analitza. Entén. Evoluciona.
         </h1>
 
         <p className="home-subtitle">
-          Plataforma d’anàlisi de combats i scouting orientada a lluitadors i
-          entrenadors de grappling.
+          Plataforma d’anàlisi de combats i scouting orientada a la millora tècnica i tàctica en grappling.
         </p>
       </div>
 
@@ -35,8 +32,7 @@ function HomeScreen({ onSelectProfile }: Props) {
             <h2>Lluitador</h2>
 
             <p>
-              Analitza el teu rendiment, estudia rivals i revisa la teva
-              evolució tècnica.
+              Analitza els teus combats, estudia la teva evolució i prepara millor cada rival.
             </p>
           </div>
         </button>
@@ -52,7 +48,7 @@ function HomeScreen({ onSelectProfile }: Props) {
             <h2>Entrenador</h2>
 
             <p>
-              Gestiona esportistes, prepara combats i genera informes tàctics.
+              Analitza els combats i el rendiment dels teus alumnes, detecta focus d’entrenament i genera scouting tàctic dels rivals.
             </p>
           </div>
         </button>

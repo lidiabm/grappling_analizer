@@ -224,38 +224,93 @@ function AnalysisSelector({
 }
 
 function EvolutionResults({ result }: { result: FighterEvolutionResponse }) {
+  const recommendations = result.recomanacions_entrenament;
+
   return (
     <section className="fighter-evolution-results">
       <div className="fighter-evolution-result-hero">
         <span className="fighter-evolution-eyebrow">Informe generat</span>
         <h3>Resum de l’evolució</h3>
-        <p>{result.summary}</p>
+        <p>{result.resum_evolucio}</p>
+
+        <div className="fighter-evolution-meta">
+          <span>Canvi global: {result.magnitud_canvi_global}</span>
+          <span>Confiança: {result.fighter_info.confianca_analisi}</span>
+        </div>
       </div>
 
       <div className="fighter-evolution-result-grid">
-        <ResultCard title="Millores detectades" items={result.improvements} />
-        <ResultCard title="Riscos o empitjoraments" items={result.regressions} />
-        <ResultCard title="Patrons que es mantenen" items={result.stablePatterns} />
+        <ResultCard title="Millores detectades" items={result.millores} />
+
+        <ResultCard
+          title="Regressions o empitjoraments"
+          items={result.regressions}
+        />
+
+        <ResultCard
+          title="Fortaleses consolidades"
+          items={result.patrons_estables.fortaleses_consolidades}
+        />
+
+        <ResultCard
+          title="Debilitats persistents"
+          items={result.patrons_estables.debilitats_persistents}
+        />
 
         <ResultTextCard
           title="Evolució tècnica"
-          text={result.technicalEvolution}
+          text={[
+            result.evolucio_tecnica.tecniques_millorades.length
+              ? `Tècniques millorades:\n- ${result.evolucio_tecnica.tecniques_millorades.join("\n- ")}`
+              : "",
+            result.evolucio_tecnica.tecniques_empitjorades.length
+              ? `Tècniques empitjorades:\n- ${result.evolucio_tecnica.tecniques_empitjorades.join("\n- ")}`
+              : "",
+            result.evolucio_tecnica.tecniques_noves.length
+              ? `Tècniques noves:\n- ${result.evolucio_tecnica.tecniques_noves.join("\n- ")}`
+              : "",
+            result.evolucio_tecnica.tecniques_abandonades.length
+              ? `Tècniques abandonades:\n- ${result.evolucio_tecnica.tecniques_abandonades.join("\n- ")}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n")}
           wide
         />
 
         <ResultTextCard
           title="Evolució tàctica"
-          text={result.tacticalEvolution}
+          text={[
+            `Model antic: ${result.evolucio_tactica.model_antic}`,
+            `Model recent: ${result.evolucio_tactica.model_recent}`,
+            `Canvi observat: ${result.evolucio_tactica.canvi_observat}`,
+            `Interpretació: ${result.evolucio_tactica.interpretacio}`,
+          ].join("\n\n")}
           wide
         />
 
-        <ResultCard
-          title="Prioritats d’entrenament"
-          items={result.recommendedFocus}
-          wide
-        />
+        {recommendations && (
+          <>
+            <ResultCard
+              title="Prioritat alta"
+              items={recommendations.prioritat_alta}
+            />
 
-        <ResultTextCard title="Conclusió" text={result.conclusion} wide />
+            <ResultCard
+              title="Prioritat mitjana"
+              items={recommendations.prioritat_mitjana}
+            />
+
+            <ResultCard
+              title="Manteniment"
+              items={recommendations.manteniment}
+            />
+          </>
+        )}
+
+        <ResultTextCard title="Conclusió" text={result.conclusio} wide />
+
+        <ResultCard title="Incerteses" items={result.incerteses} wide />
       </div>
     </section>
   );
@@ -307,7 +362,9 @@ function ResultTextCard({
       }`}
     >
       <h4>{title}</h4>
-      <p>{text}</p>
+      <p style={{ whiteSpace: "pre-line" }}>
+        {text || "No hi ha dades suficients."}
+      </p>
     </article>
   );
 }

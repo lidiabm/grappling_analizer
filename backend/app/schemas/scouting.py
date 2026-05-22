@@ -1,4 +1,4 @@
-from typing import Any, List, Literal
+from typing import List, Literal
 from pydantic import BaseModel
 
 
@@ -29,9 +29,55 @@ class InformeEntrenadorScouting(BaseModel):
     riscos_principals: List[str]
 
 
+class ScoutingPerVideoStats(BaseModel):
+    video: int | str
+    fitxer: str
+    seguiment_rival: Literal["clar", "parcial", "incert"]
+    atacs_iniciats: int | str
+    atacs_efectius: int | str
+    intents_passada_guardia: int | str
+    passades_guardia_efectives: int | str
+    raspades_intentades: int | str
+    raspades_efectives: int | str
+    submissions_intentades: int | str
+    submissions_encaixades: int | str
+    recuperacions_guardia: int | str
+    perdues_posicio: int | str
+    temps_dominant_aproximat: str
+    situacions_mes_frequents: List[str]
+    observacions: List[str]
+
+
+class ScoutingGlobalStats(BaseModel):
+    accions_mes_frequents: List[str]
+    situacions_mes_repetides: List[str]
+    zones_de_risc: List[str]
+    tendencies_tactiques: List[str]
+    patrons_amb_mes_evidencia: List[str]
+    patrons_amb_poca_evidencia: List[str]
+
+
+class ScoutingNumericProfile(BaseModel):
+    pressio: int
+    agressivitat: int
+    control_posicional: int
+    defensa: int
+    perill_submissio: int
+    explosivitat: int
+    adaptabilitat: int
+
+
+class ScoutingStats(BaseModel):
+    nota: str
+    nivell_fiabilitat_estadistica: Literal["alta", "mitjana", "baixa"]
+    per_video: List[ScoutingPerVideoStats]
+    resum_global: ScoutingGlobalStats
+    perfil_numeric: ScoutingNumericProfile
+
+
 class ScoutingChartDatum(BaseModel):
     label: str
-    valor: int | float | str
+    valor: int | float
 
 
 class ScoutingChart(BaseModel):
@@ -54,10 +100,11 @@ class ScoutingResponse(BaseModel):
     patrons_recurrents: List[str]
     punts_forts: List[str]
     debilitats: List[str]
-    incerteses: List[str]
 
     informe_lluitador: InformeLluitadorScouting | None = None
     informe_entrenador: InformeEntrenadorScouting | None = None
 
-    estadistiques: Any | None = None
+    estadistiques: ScoutingStats | None = None
     grafics_suggerits: List[ScoutingChart] | None = None
+
+    incerteses: List[str]

@@ -5,7 +5,6 @@ def _analysis_type(profile: str, mode: str) -> str:
         ("entrenador", "single_athlete"): "analisi_alumne",
         ("entrenador", "full_fight"): "combat_entrenador",
     }
-
     return mapping.get((profile, mode), "auto_analisi")
 
 
@@ -24,27 +23,18 @@ def build_prompt(
         parts = [
             _base_rules(),
             _profile_rules(profile),
-            _auto_analisi_rules(
-                athlete_identifier_type,
-                athlete_identifier_value,
-            ),
+            _auto_analisi_rules(athlete_identifier_type, athlete_identifier_value),
             _single_athlete_schema(profile),
         ]
-
-        return "\n".join(part.strip() for part in parts if part.strip())
 
     elif analysis_type == "analisi_alumne":
         parts = [
             _base_rules(),
             _profile_rules(profile),
-            _alumne_analisi_rules(
-                athlete_identifier_type,
-                athlete_identifier_value,
-            ),
+            _alumne_analisi_rules(athlete_identifier_type, athlete_identifier_value),
+            _stats_invariants(),
             _single_athlete_schema(profile),
         ]
-
-        return "\n".join(part.strip() for part in parts if part.strip())
 
     elif analysis_type == "combat_lluitador":
         parts = [
@@ -53,30 +43,36 @@ def build_prompt(
             _combat_lluitador_rules(),
             _full_fight_schema(profile),
         ]
-        return "\n".join(part.strip() for part in parts if part.strip())
 
     elif analysis_type == "combat_entrenador":
         parts = [
             _base_rules(),
             _profile_rules(profile),
             _combat_entrenador_rules(),
+            _stats_invariants(),
             _full_fight_schema(profile),
         ]
-        return "\n".join(part.strip() for part in parts if part.strip())
 
-    raise ValueError(f"Tipus d'anàlisi no implementat: {analysis_type}")
+    else:
+        raise ValueError(f"Tipus d'anàlisi no implementat: {analysis_type}")
 
+    return "\n".join(part.strip() for part in parts if part.strip())
+
+
+# ─────────────────────────────────────────────
+# BASE
+# ─────────────────────────────────────────────
 
 def _base_rules() -> str:
     return """
-Analitza aquest vídeo d’un combat de grappling.
+Analitza aquest vídeo d'un combat de grappling.
 
 Resposta:
 - Retorna únicament un objecte JSON vàlid.
 - Escriu tot el contingut textual en català.
 - No incloguis cap text fora del JSON.
 - No utilitzis Markdown ni blocs de codi.
-- No afegeixis cap clau que no estigui definida a l’esquema.
+- No afegeixis cap clau que no estigui definida a l'esquema.
 - Inclou tots els camps obligatoris encara que el valor sigui "desconegut", "incert", "", 0, false o [].
 - El JSON ha de ser parsejable sense errors.
 
@@ -88,39 +84,34 @@ Regles generals:
 - Si una interpretació és dubtosa, utilitza "incert".
 - Si no hi ha evidència suficient per omplir una llista, utilitza [].
 - Registra qualsevol dubte rellevant a "incerteses".
-- Mantén coherència entre tot el JSON. 
+- Mantén coherència entre tot el JSON.
+- Si una acció no és visible completament, no assumeixis el resultat.
+- Si la càmera talla una transició, no dedueixis estabilització.
+- No interpretis grips parcials com control consolidat.
 
 Identificació dels oponents:
 - Assigna sempre dos ids fixos: "oponent_1" i "oponent_2".
 - Mantén el mateix id per al mateix lluitador durant tot el JSON.
 - Cada oponent ha de tenir una "descripcio_visual" basada només en elements visibles.
-- Si apareix clarament un nom al vídeo o marcador, posa’l a "nom_visible".
+- Si apareix clarament un nom al vídeo o marcador, posa'l a "nom_visible".
 - Si no es veu cap nom, posa "desconegut".
 
 Valors permesos per "posicio":
 - standing
-- closed_guard_top
-- closed_guard_bottom
-- open_guard_top
-- open_guard_bottom
-- half_guard_top
-- half_guard_bottom
-- side_control_top
-- side_control_bottom
-- mount_top
-- mount_bottom
-- back_control_top
-- back_control_bottom
-- turtle_top
-- turtle_bottom
+- closed_guard
+- open_guard
+- half_guard
+- side_control
+- mount
+- back_control
+- turtle
 - scramble
 - other
 
 Valors permesos per "controlador":
 - oponent_1
 - oponent_2
-- cap
-- incert
+- desconegut
 
 Valors permesos per "tipus_event":
 - inici_intercanvi
@@ -133,8 +124,23 @@ Valors permesos per "tipus_event":
 - reversio
 - scramble
 - pausa
-- finalitzacio
+- finalitzacio 
+- avantatge_posicional
 - altre
+
+Prioritat de classificació de "tipus_event":
+1. finalitzacio
+2. intent_finalitzacio
+3. intent_enderroc
+4. reversio
+5. escape
+6. guard_pull
+7. control
+8. transicio
+9. scramble
+10. avantatge_posicional
+11. inici_intercanvi
+12. altre
 
 Valors permesos per "metode":
 - submissio
@@ -150,26 +156,34 @@ Valors permesos per "confianca":
 - baixa
 
 Definicions operatives:
-- "control" implica estabilització clara d’una posició durant aproximadament 3 segons o més.
+- "control" implica estabilització clara d'una posició durant aproximadament 3 segons o més.
 - "transicio" és un canvi de posició sense estabilització clara.
 - "scramble" és una fase disputada o caòtica sense control definit.
 - "intent_finalitzacio" exigeix una acció visible orientada a una submissió.
-- "intent_enderroc" exigeix una acció clara per portar l’oponent a terra.
-- "dominant" és true quan el lluitador controla activament la posició i false quan defensa, neutralitza o no hi ha control clar.
+- "intent_enderroc" exigeix una acció clara per portar l'oponent a terra.
+- "controlador" és el lluitador que controla activament la situació durant el segment.
+- En posicions neutrals o sense control clar, utilitza "desconegut".
+- "avantatge_posicional" és una millora clara de control o estructura sense estabilització completa ni finalització.
 
 Regles del timeline:
 - Segmenta el combat en trams consecutius i coherents.
 - Cada tram ha de tenir "inici" i "fi" en format MM:SS.
-- Els temps són relatius a l’inici del vídeo analitzat.
+- Els temps són relatius a l'inici del vídeo analitzat.
 - No pot haver-hi solapaments.
 - Els trams han de cobrir tota la seqüència analitzada.
 - Cada tram ha de tenir una sola "posicio" principal.
 - Si la fase és ambigua o transitòria, utilitza "scramble" o "other".
 - "rellevancia" ha de ser un enter entre 1 i 5.
 - "confianca" ha de ser "alta", "mitjana" o "baixa".
-- Si hi ha tall de càmera, obstacle visual o pèrdua parcial de l’acció, marca confiança baixa o mitjana i explica-ho a "incerteses".
+- Si hi ha tall de càmera, obstacle visual o pèrdua parcial de l'acció, marca confiança baixa o mitjana i explica-ho a "incerteses".
+- El "inici" d'un segment ha de coincidir amb el "fi" del segment anterior.
+- No poden existir buits temporals entre segments.
 """
 
+
+# ─────────────────────────────────────────────
+# PERFIL
+# ─────────────────────────────────────────────
 
 def _profile_rules(profile: str) -> str:
     if profile == "entrenador":
@@ -208,6 +222,10 @@ Evita:
 """
 
 
+# ─────────────────────────────────────────────
+# REGLES D'ANÀLISI
+# ─────────────────────────────────────────────
+
 def _auto_analisi_rules(
     athlete_identifier_type: str | None,
     athlete_identifier_value: str | None,
@@ -218,7 +236,7 @@ Lluitador a analitzar:
 - valor_identificador: {athlete_identifier_value or "desconegut"}
 
 Objectiu:
-- Analitzar el rendiment del lluitador seleccionat com si fos la persona que rep l’informe.
+- Analitzar el rendiment del lluitador seleccionat com si fos la persona que rep l'informe.
 
 Regles:
 - "mode" ha de ser exactament "single_athlete".
@@ -226,15 +244,15 @@ Regles:
 - Identifica quin oponent correspon al lluitador indicat.
 - "selected_oponent_id" ha de ser "oponent_1", "oponent_2" o "desconegut".
 - Parla al lluitador en segona persona.
-- Centra’t en què has fet bé, què has de corregir i què has de repetir.
+- Centra't en què has fet bé, què has de corregir i què has de repetir.
 - Les millores han de ser accions concretes.
 - Relaciona cada correcció amb una conseqüència observable.
-- L’altre lluitador només s’ha d’esmentar quan sigui necessari per entendre l’acció.
+- L'altre lluitador només s'ha d'esmentar quan sigui necessari per entendre l'acció.
 
-Coherència d’identitat:
+Coherència d'identitat:
 - Si "selected_oponent_id" és "oponent_1", totes les frases de "analisi_lluitador" han de referir-se a "oponent_1".
 - Si "selected_oponent_id" és "oponent_2", totes les frases de "analisi_lluitador" han de referir-se a "oponent_2".
-- No atribueixis accions de l’altre oponent al lluitador seleccionat.
+- No atribueixis accions de l'altre oponent al lluitador seleccionat.
 - Si hi ha dubte sobre la identitat, posa "selected_oponent_id": "desconegut" i explica-ho a "incerteses".
 
 Evita:
@@ -255,83 +273,50 @@ Lluitador a analitzar:
 - valor_identificador: {athlete_identifier_value or "desconegut"}
 
 Objectiu:
-- Generar una anàlisi tècnica del rendiment de l’alumne seleccionat per a un entrenador.
+- Generar una anàlisi tècnica del rendiment de l'alumne seleccionat per a un entrenador.
 
 Regles:
 - "mode" ha de ser exactament "single_athlete".
 - "perfil" ha de ser exactament "entrenador".
-- Identifica quin oponent correspon a l’alumne indicat.
+- Identifica quin oponent correspon a l'alumne indicat.
 - "selected_oponent_id" ha de ser "oponent_1", "oponent_2" o "desconegut".
-- Escriu sobre l’alumne en tercera persona.
-- No parlis directament a l’alumne.
-- L’anàlisi tècnica textual ha d’estar centrada en l’alumne seleccionat.
+- Escriu sobre l'alumne en tercera persona.
+- No parlis directament a l'alumne.
+- L'anàlisi tècnica textual ha d'estar centrada en l'alumne seleccionat.
 - Les estadístiques han de cobrir sempre els dos oponents per permetre comparació.
 - Prioritza lectura posicional, cadenes tècniques, patrons tàctics i relacions causa-efecte.
 - Distingueix errors puntuals de patrons repetits.
 - Relaciona cada error important amb una conseqüència observable.
-- L’altre lluitador només s’ha d’esmentar quan sigui necessari per explicar una acció de l’alumne.
+- L'altre lluitador només s'ha d'esmentar quan sigui necessari per explicar una acció de l'alumne.
+
+Criteri tècnic:
+- Analitza control postural, gestió de distància, grips, frames, underhooks, inside position,
+  pressió, timing, direcció de força, transicions, estabilització, escapes i exposició a
+  finalitzacions quan siguin observables.
+- En posicions superiors: valora consolidació, pressió, progressió i risc de reversió.
+- En posicions inferiors: valora frames, retenció de guàrdia, recuperació, escapes i exposició.
+- En scrambles: valora presa de decisions, orientació corporal i capacitat de sortir amb control.
 
 Estadístiques:
 - Inclou estadístiques estimades del combat complet per generar gràfics comparatius.
-- Les estadístiques han de comparar sempre "oponent_1" i "oponent_2", encara que l’anàlisi textual se centri en l’alumne seleccionat.
-- "temps_per_posicio" NO ha de duplicar el mateix tram per als dos oponents.
-- Cada tram temporal del combat només pot comptar una vegada.
-- Si hi ha un controlador clar, assigna "lluitador" al controlador: "oponent_1" o "oponent_2".
-- Si no hi ha controlador clar, assigna "lluitador": "desconegut".
-- No creïs una fila defensiva mirall per l’altre oponent.
-- Exemple incorrecte: oponent_1 side_control_top 10s i oponent_2 side_control_bottom 10s.
-- Exemple correcte: oponent_1 side_control_top 10s dominant true.
-- En posicions neutrals com "standing", "scramble" o "other", només crea una fila amb "lluitador": "desconegut" si no hi ha control clar.
-- Els segons totals de "temps_per_posicio" no han de superar la durada estimada del combat.
-- Els percentatges de "temps_per_posicio" han de sumar aproximadament 100 en total, no 100 per cada oponent.
-- "temps_dominant_total" ha de ser un objecte amb "oponent_1" i "oponent_2".
-- "temps_dominant_total" representa el temps en què cada lluitador controla clarament la situació.
-- "temps_defensiu_total" ha de ser un objecte amb "oponent_1" i "oponent_2".
-- "temps_defensiu_total" representa el temps en què cada lluitador està clarament en situació inferior, defensiva o sota control rival.
-- Un mateix interval temporal pot comptar com a dominant per a un lluitador i simultàniament com a defensiu per a l’altre.
-- Exemple correcte:
-  - oponent_1 side_control_top 20s dominant true
-  - temps_dominant_total.oponent_1 += 20
-  - temps_defensiu_total.oponent_2 += 20
-- NO afegeixis una fila mirall dins "temps_per_posicio".
-- El temps defensiu s’ha de calcular separadament, no duplicant posicions.
-- "temps_neutral_total" ha de sumar trams sense controlador clar.
+- Les estadístiques han de comparar sempre "oponent_1" i "oponent_2".
+- Segueix estrictament els invariants i el procediment definits a la secció INVARIANTS.
 
-Accions clau:
-- Revisa tot el timeline i compta les accions clau observables per cada oponent.
-- No comptis només les accions reeixides; compta també intents clars encara que fallin.
-- Un "intent_finalitzacio" inclou qualsevol atac visible de submissió: estrangulació, armbar, triangle, kimura, americana, ankle lock, kneebar o control clar orientat a finalitzar.
-- Un "intent_enderroc" inclou qualsevol entrada clara per portar l’oponent a terra: single leg, double leg, body lock, foot sweep, snap down o projecció.
-- Un "guard_pull" inclou qualsevol acció clara d’asseure’s o portar el combat a guàrdia voluntàriament.
-- Una "reversio" és un canvi on el lluitador passa d’una situació inferior o defensiva a una situació superior o dominant.
-- Una "escapada" és sortir d’una posició de control rival cap a una posició neutral, scramble o guàrdia recuperada.
-- Assigna cada acció a "oponent_1" o "oponent_2" segons qui inicia l’acció.
-- Si l’autor de l’acció no és clar, no incrementis cap comptador i explica-ho a "incerteses".
-- Si una acció passa dins d’un scramble, compta-la només si l’iniciador és visualment clar.
-- "intents_finalitzacio", "intents_enderroc", "guard_pulls", "reversions" i "escapades" han de ser objectes amb "oponent_1" i "oponent_2".
-- Les accions comptades han de ser observables.
-- Si una dada és dubtosa, marca-la a "incerteses".
-
-Criteri tècnic:
-- Analitza control postural, gestió de distància, grips, frames, underhooks, inside position, pressió, timing, direcció de força, transicions, estabilització, escapes i exposició a finalitzacions quan siguin observables.
-- En posicions superiors, valora consolidació, pressió, progressió i risc de reversió.
-- En posicions inferiors, valora frames, retenció de guàrdia, recuperació, escapes i exposició.
-- En scrambles, valora presa de decisions, orientació corporal i capacitat de sortir amb control.
-
-Coherència d’identitat:
+Coherència d'identitat:
 - Si "selected_oponent_id" és "oponent_1", totes les frases de "analisi_lluitador" han de referir-se a "oponent_1".
 - Si "selected_oponent_id" és "oponent_2", totes les frases de "analisi_lluitador" han de referir-se a "oponent_2".
-- "estadistiques_estimades" ha de comparar sempre "oponent_1" i "oponent_2", encara que l’anàlisi textual se centri en l’alumne seleccionat.
-- No atribueixis accions de l’altre oponent a l’alumne seleccionat.
+- "estadistiques_estimades" ha de comparar sempre "oponent_1" i "oponent_2", encara que l'anàlisi textual se centri en l'alumne seleccionat.
+- No atribueixis accions de l'altre oponent a l'alumne seleccionat.
 - Si hi ha dubte sobre la identitat, posa "selected_oponent_id": "desconegut" i explica-ho a "incerteses".
 
 Evita:
 - parlar en segona persona.
 - donar consells motivacionals.
 - fer recomanacions genèriques.
-- analitzar els dos lluitadors per igual en l’anàlisi textual.
+- analitzar els dos lluitadors per igual en l'anàlisi textual.
 - incloure estadístiques que no siguin estimables a partir del vídeo.
 """
+
 
 def _combat_lluitador_rules() -> str:
     return """
@@ -344,14 +329,14 @@ Regles:
 - "selected_oponent_id" ha de ser exactament "desconegut".
 - Analitza els dos lluitadors de manera equilibrada.
 - Inclou una lectura tàctica general dels dos oponents.
-- Mantén l’anàlisi més simple i accionable que en el perfil d’entrenador.
+- Mantén l'anàlisi més simple i accionable que en el perfil d'entrenador.
 - Dona importància a decisions, oportunitats, riscos, errors clars i accions útils per competir millor.
-- L’anàlisi de cada oponent ha de ser breu: no entris en el mateix nivell de detall que en single_athlete.
+- L'anàlisi de cada oponent ha de ser breu: no entris en el mateix nivell de detall que en single_athlete.
 - No incloguis estadístiques.
 - No incloguis "analisi_lluitador".
 
 Evita:
-- centrar l’anàlisi només en un lluitador.
+- centrar l'anàlisi només en un lluitador.
 - fer una anàlisi excessivament acadèmica.
 - incloure estadístiques.
 - recomanacions massa generals.
@@ -369,95 +354,86 @@ Regles:
 - "selected_oponent_id" ha de ser exactament "desconegut".
 - Analitza els dos lluitadors de manera equilibrada.
 - Inclou una anàlisi general de cada oponent: tàctica, patrons, fortaleses, debilitats, errors principals i encerts.
-- Mantén l’anàlisi menys profunda que en mode single_athlete.
+- Mantén l'anàlisi menys profunda que en mode single_athlete.
 - Prioritza dinàmica global del combat, control posicional, patrons repetits i moments decisius.
 - Inclou estadístiques estimades del combat complet per generar gràfics comparatius.
 - No parlis directament a cap lluitador.
 - No incloguis "analisi_lluitador".
 
-Regla crítica de no duplicació:
-- "temps_per_posicio" representa el temps real del combat, no el temps individual de cada lluitador.
-- Està prohibit crear dues files per al mateix interval temporal.
-- Està prohibit crear parelles mirall com:
-  - oponent_1 side_control_top 15s + oponent_2 side_control_bottom 15s
-  - oponent_1 mount_top 10s + oponent_2 mount_bottom 10s
-  - oponent_1 standing 45s + oponent_2 standing 45s
-- En cada posició controlada, només registra el lluitador que controla.
-- El lluitador defensiu NO s’ha d’afegir a "temps_per_posicio".
-- En standing, scramble o other sense control clar, utilitza una única fila amb "lluitador": "desconegut".
-- La suma de tots els "segons" dins "temps_per_posicio" ha de ser igual o inferior a la durada estimada del combat.
-- Si la suma supera la durada estimada, el JSON és incorrecte.
-
 Estadístiques:
+- Inclou estadístiques estimades del combat complet per generar gràfics comparatius.
 - Les estadístiques han de comparar els dos oponents.
-- "temps_per_posicio" ha d’incloure el camp "lluitador".
-- Els segons i percentatges han de ser coherents amb el timeline.
-- Les accions comptades han de ser observables.
-- Si una dada és dubtosa, marca-la a "incerteses".
+- Segueix estrictament els invariants i el procediment definits a la secció INVARIANTS.
 
 Evita:
-- focalitzar l’informe en un únic lluitador.
+- focalitzar l'informe en un únic lluitador.
 - fer recomanacions individuals massa detallades.
-- convertir-ho en un pla d’entrenament.
+- convertir-ho en un pla d'entrenament.
 - incloure estadístiques no estimables visualment.
 """
 
 
-def _schema_start(mode: str, profile: str) -> str:
-    selected = "desconegut" if mode == "full_fight" else "oponent_1|oponent_2|desconegut"
+# ─────────────────────────────────────────────
+# INVARIANTS D'ESTADÍSTIQUES
+# ─────────────────────────────────────────────
 
-    return f"""
-{{
-  "mode": "{mode}",
-  "perfil": "{profile}",
-  "selected_oponent_id": "{selected}",
-  "combat_info": {{
-    "oponents": [
-      {{
-        "id": "oponent_1",
-        "nom_visible": "string",
-        "descripcio_visual": "string"
-      }},
-      {{
-        "id": "oponent_2",
-        "nom_visible": "string",
-        "descripcio_visual": "string"
-      }}
-    ],
-    "durada_estimada": "MM:SS",
-    "nivell_confianca_global": "alta|mitjana|baixa"
-  }},
-  "resum_partit": {{
-    "guanyador": {{
-        "id": "oponent_1|oponent_2|desconegut",
-        "descripcio": "string"
-    }},
-    "perdedor": {{
-        "id": "oponent_1|oponent_2|desconegut",
-        "descripcio": "string"
-    }},
-    "metode": "submissio|punts|decisio|avantatge|desqualificacio|desconegut",
-    "tipus_submissio": "string|desconegut",
-    "resum_breu": "string"
-  }},
-  "timeline": [
-    {{
-      "inici": "MM:SS",
-      "fi": "MM:SS",
-      "posicio": "standing",
-      "controlador": "oponent_1|oponent_2|cap|incert",
-      "tipus_event": "inici_intercanvi|control|transicio|intent_finalitzacio|intent_enderroc|guard_pull|escape|reversio|scramble|pausa|finalitzacio|altre",
-      "descripcio": "string",
-      "rellevancia": 1,
-      "confianca": "alta|mitjana|baixa"
-    }}
-  ],
+def _stats_invariants() -> str:
+    return """
+INVARIANTS D'ESTADÍSTIQUES (el JSON és incorrecte si no es compleixen):
+
+1. La suma de tots els "segons" dins "temps_per_posicio" ha de ser igual a "duracio_total_segons".
+2. La suma de tots els "percentatge" ha de ser igual a 100.0 (tolerància ±1.0).
+3. Cada interval temporal del combat apareix exactament una vegada a "temps_per_posicio".
+4. Dues files no poden compartir el mateix interval temporal: PROHIBIT crear parelles mirall.
+    PROHIBIT: duplicar el mateix interval temporal per als dos lluitadors.
+    INCORRECTE:
+    - oponent_1 side_control 20s
+    - oponent_2 side_control 20s
+    CORRECTE:
+    { "controlador": "oponent_1", "posicio": "side_control", "segons": 20 }
+5. Posicions controlades (closed_guard, open_guard, half_guard, side_control, mount, back_control, turtle)
+6. Posicions neutrals (standing, scramble, other sense control clar): "controlador" és "desconegut".
+7. El lluitador defensiu NO genera cap fila a "temps_per_posicio".
+8. "resum_accions" ha de ser coherent amb el recompte de "accions_clau":
+   el total de cada tipus per lluitador a "accions_clau" ha de coincidir amb "resum_accions".
+9. "temps_dominant_total" ha de ser igual a la suma de tots els segments controlats per cada lluitador.
+10. Les estadístiques han de derivar exclusivament del timeline.
+No afegeixis informació estadística que no aparegui implícitament al timeline.
+
+Definicions per al recompte d'accions:
+- "intent_finalitzacio": qualsevol atac visible de submissió (estrangulació, armbar, triangle,
+  kimura, americana, ankle lock, kneebar) o control clar orientat a finalitzar.
+  Compta intents fallits i reeixits.
+- "intent_enderroc": entrada clara per portar l'oponent a terra (single leg, double leg,
+  body lock, foot sweep, snap down, projecció). Compta intents fallits i reeixits.
+- "guard_pull": acció clara d'asseure's o portar el combat a guàrdia voluntàriament.
+- "reversio": el lluitador passa de posició INFERIOR (bottom) a posició SUPERIOR (top).
+  Exemple de frontera: recuperar guàrdia des de mount_bottom → és ESCAPADA, no reversió.
+- "escapada": sortir d'una posició de control rival cap a standing, guàrdia pròpia o scramble.
+  Nota: guàrdia pròpia és posició inferior però compta com a escapada si el rival tenia
+  mount/back/side control.
+- Si l'autor d'una acció no és visualment clar, no incrementis cap comptador i explica-ho a "incerteses".
+- Si una acció passa dins d'un scramble, compta-la només si l'iniciador és visualment clar.
+
+PROCEDIMENT OBLIGATORI abans de generar "estadistiques_estimades":
+PAS 1: Usa el timeline com a única font per calcular les estadístiques.
+PAS 2: Suma tots els segments del timeline i verifica que coincideixen amb "duracio_total_segons".
+PAS 3: Calcula els percentatges amb la fórmula: (segons / duracio_total_segons) × 100.
+PAS 4: Verifica que la suma dels percentatges sigui 100.0 amb una tolerància de ±1.0.
+PAS 5: Calcula "temps_dominant_total" sumant els segments on "controlador" sigui "oponent_1" o "oponent_2".
+PAS 6: Recorre "accions_clau" i compta cada tipus per lluitador.
+PAS 7: Verifica que els totals de "accions_clau" coincideixin amb "resum_accions".
+PAS 8: Si qualsevol valor és dubtós, afegeix-lo a "incerteses" i usa 0 o "desconegut".
+PAS 9: Genera el JSON només després de completar aquestes comprovacions.
 """
 
 
+# ─────────────────────────────────────────────
+# SCHEMAS D'ANÀLISI TEXTUAL
+# ─────────────────────────────────────────────
+
 def _analisi_propi_schema() -> str:
-    return """
-{
+    return """{
   "resum_personal": "string",
   "tactica_general": "string",
   "patrons_tactics": ["string"],
@@ -486,13 +462,11 @@ def _analisi_propi_schema() -> str:
       "benefici_esperat": "string"
     }
   ]
-}
-"""
+}"""
 
 
 def _analisi_alumne_schema() -> str:
-    return """
-{
+    return """{
   "resum_tecnic": "string",
   "model_de_combat": "string",
   "lectura_posicional": "string",
@@ -526,13 +500,11 @@ def _analisi_alumne_schema() -> str:
       "objectiu": "string"
     }
   ]
-}
-"""
+}"""
 
 
 def _analisi_oponent_general_schema() -> str:
-    return """
-{
+    return """{
   "tactica_general": "string",
   "patrons_tactics": ["string"],
   "fortaleses_clau": ["string"],
@@ -552,13 +524,11 @@ def _analisi_oponent_general_schema() -> str:
     }
   ],
   "resum_rendiment": "string"
-}
-"""
+}"""
 
 
 def _analisi_oponent_general_entrenador_schema() -> str:
-    return """
-{
+    return """{
   "tactica_general": "string",
   "model_de_combat": "string",
   "lectura_posicional": "string",
@@ -582,59 +552,109 @@ def _analisi_oponent_general_entrenador_schema() -> str:
     }
   ],
   "resum_rendiment": "string"
-}
-"""
+}"""
 
 
-def _estadistiques_alumne_schema() -> str:
-    return _estadistiques_combat_entrenador_schema()
+# ─────────────────────────────────────────────
+# SCHEMA D'ESTADÍSTIQUES (únic, reutilitzat)
+# ─────────────────────────────────────────────
 
+def _estadistiques_schema() -> str:
+    return """{
+  "duracio_total_segons": 0,
 
-def _estadistiques_combat_entrenador_schema() -> str:
-    return """
-{
   "temps_per_posicio": [
     {
-      "lluitador": "oponent_1|oponent_2|desconegut",
       "posicio": "standing|closed_guard|open_guard|half_guard|side_control|mount|back_control|turtle|scramble|other",
+      "controlador": "oponent_1|oponent_2|desconegut",
       "segons": 0,
-      "percentatge": 0,
-      "dominant": false
+      "percentatge": 0.0
     }
   ],
+
   "temps_dominant_total": {
     "oponent_1": 0,
     "oponent_2": 0
   },
-  "temps_defensiu_total": {
-    "oponent_1": 0,
-    "oponent_2": 0
-  },
-  "temps_neutral_total": 0,
-  "canvis_control": 0,
-  "intents_finalitzacio": {
-    "oponent_1": 0,
-    "oponent_2": 0
-  },
-  "intents_enderroc": {
-    "oponent_1": 0,
-    "oponent_2": 0
-  },
-  "guard_pulls": {
-    "oponent_1": 0,
-    "oponent_2": 0
-  },
-  "reversions": {
-    "oponent_1": 0,
-    "oponent_2": 0
-  },
-  "escapades": {
-    "oponent_1": 0,
-    "oponent_2": 0
-  }
-}
-"""
 
+  "accions_clau": [
+    {
+      "temps": "MM:SS",
+      "lluitador": "oponent_1|oponent_2",
+      "tipus": "intent_finalitzacio|intent_enderroc|guard_pull|reversio|escapada",
+      "detall": "string",
+      "confianca": "alta|mitjana|baixa"
+    }
+  ],
+
+  "resum_accions": {
+    "intents_finalitzacio": { "oponent_1": 0, "oponent_2": 0 },
+    "intents_enderroc":     { "oponent_1": 0, "oponent_2": 0 },
+    "guard_pulls":          { "oponent_1": 0, "oponent_2": 0 },
+    "reversions":           { "oponent_1": 0, "oponent_2": 0 },
+    "escapades":            { "oponent_1": 0, "oponent_2": 0 },
+    "canvis_control":       0
+  }
+}"""
+
+
+# ─────────────────────────────────────────────
+# SCHEMA D'INICI (compartit)
+# ─────────────────────────────────────────────
+
+def _schema_start(mode: str, profile: str) -> str:
+    selected = "desconegut" if mode == "full_fight" else "oponent_1|oponent_2|desconegut"
+
+    return f"""{{
+  "mode": "{mode}",
+  "perfil": "{profile}",
+  "selected_oponent_id": "{selected}",
+  "combat_info": {{
+    "oponents": [
+      {{
+        "id": "oponent_1",
+        "nom_visible": "string",
+        "descripcio_visual": "string"
+      }},
+      {{
+        "id": "oponent_2",
+        "nom_visible": "string",
+        "descripcio_visual": "string"
+      }}
+    ],
+    "durada_estimada": "MM:SS",
+    "nivell_confianca_global": "alta|mitjana|baixa"
+  }},
+  "resum_partit": {{
+    "guanyador": {{
+      "id": "oponent_1|oponent_2|desconegut",
+      "descripcio": "string"
+    }},
+    "perdedor": {{
+      "id": "oponent_1|oponent_2|desconegut",
+      "descripcio": "string"
+    }},
+    "metode": "submissio|punts|decisio|avantatge|desqualificacio|desconegut",
+    "tipus_submissio": "string|desconegut",
+    "resum_breu": "string"
+  }},
+  "timeline": [
+    {{
+      "inici": "MM:SS",
+      "fi": "MM:SS",
+      "posicio": "standing",
+      "controlador": "oponent_1|oponent_2|desconegut",
+      "tipus_event": "inici_intercanvi|control|transicio|intent_finalitzacio|intent_enderroc|guard_pull|escape|reversio|scramble|pausa|finalitzacio|altre",
+      "descripcio": "string",
+      "rellevancia": 1,
+      "confianca": "alta|mitjana|baixa"
+    }}
+  ],"""
+
+
+# ─────────────────────────────────────────────
+# SCHEMAS DE SORTIDA FINALS
+# ─────────────────────────────────────────────
 
 def _single_athlete_schema(profile: str) -> str:
     if profile == "lluitador":
@@ -647,7 +667,7 @@ Format exacte de sortida:
 
 Restriccions finals:
 - Inclou obligatòriament "analisi_lluitador".
-- No afegeixis cap camp fora d’aquest esquema.
+- No afegeixis cap camp fora d'aquest esquema.
 """
 
     if profile == "entrenador":
@@ -655,17 +675,16 @@ Restriccions finals:
 Format exacte de sortida:
 {_schema_start("single_athlete", profile)}
   "analisi_lluitador": {_analisi_alumne_schema()},
-  "estadistiques_estimades": {_estadistiques_alumne_schema()},
+  "estadistiques_estimades": {_estadistiques_schema()},
   "incerteses": ["string"]
 }}
 
 Restriccions finals:
 - Inclou obligatòriament "analisi_lluitador".
 - Inclou obligatòriament "estadistiques_estimades".
-- L’anàlisi tècnica textual ha d’estar centrada en l’alumne seleccionat.
+- L'anàlisi tècnica textual ha d'estar centrada en l'alumne seleccionat.
 - Les estadístiques han de cobrir sempre els dos oponents per permetre comparació.
-- "temps_dominant_total", "temps_defensiu_total", "intents_finalitzacio", "intents_enderroc", "guard_pulls", "reversions" i "escapades" han de ser objectes amb "oponent_1" i "oponent_2".
-- No afegeixis cap camp fora d’aquest esquema.
+- No afegeixis cap camp fora d'aquest esquema.
 """
     return ""
 
@@ -697,8 +716,8 @@ Restriccions finals:
 - "mode" ha de ser exactament "full_fight".
 - "perfil" ha de ser exactament "lluitador".
 - "selected_oponent_id" ha de ser exactament "desconegut".
-- L’anàlisi dels oponents ha de ser general i més breu que en mode single_athlete.
-- No afegeixis cap camp fora d’aquest esquema.
+- L'anàlisi dels oponents ha de ser general i més breu que en mode single_athlete.
+- No afegeixis cap camp fora d'aquest esquema.
 """
 
     if profile == "entrenador":
@@ -711,7 +730,7 @@ Format exacte de sortida:
     "oponent_1": {block},
     "oponent_2": {block}
   }},
-  "estadistiques_estimades": {_estadistiques_combat_entrenador_schema()},
+  "estadistiques_estimades": {_estadistiques_schema()},
   "lectura_global": {{
     "dinamica_general": "string",
     "moments_decisius": ["string"],
@@ -728,7 +747,7 @@ Restriccions finals:
 - "mode" ha de ser exactament "full_fight".
 - "perfil" ha de ser exactament "entrenador".
 - "selected_oponent_id" ha de ser exactament "desconegut".
-- L’anàlisi dels oponents ha de ser general i menys profunda que en mode single_athlete.
-- No afegeixis cap camp fora d’aquest esquema.
+- L'anàlisi dels oponents ha de ser general i menys profunda que en mode single_athlete.
+- No afegeixis cap camp fora d'aquest esquema.
 """
     return ""

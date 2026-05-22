@@ -10,24 +10,19 @@ from app.utils.stats import derive_stats_from_timeline
 
 ALLOWED_POSITIONS = {
     "standing",
-    "closed_guard_top",
-    "closed_guard_bottom",
-    "open_guard_top",
-    "open_guard_bottom",
-    "half_guard_top",
-    "half_guard_bottom",
-    "side_control_top",
-    "side_control_bottom",
-    "mount_top",
-    "mount_bottom",
-    "back_control_top",
-    "back_control_bottom",
-    "turtle_top",
-    "turtle_bottom",
+    "closed_guard",
+    "open_guard",
+    "half_guard",
+    "side_control",
+    "mount",
+    "back_control",
+    "turtle",
     "scramble",
     "other",
 }
-ALLOWED_CONTROLLERS = {"oponent_1", "oponent_2", "cap", "incert"}
+
+ALLOWED_CONTROLLERS = {"oponent_1", "oponent_2", "desconegut"}
+
 ALLOWED_TIPUS_EVENT = {
     "inici_intercanvi",
     "control",
@@ -40,11 +35,25 @@ ALLOWED_TIPUS_EVENT = {
     "scramble",
     "pausa",
     "finalitzacio",
+    "avantatge_posicional",
     "altre",
 }
+
 ALLOWED_CONFIANCA = {"alta", "mitjana", "baixa"}
 
- # AÑADIDOOOOO
+def _empty_counter() -> dict:
+    return {"oponent_1": 0, "oponent_2": 0}
+
+
+def _normalize_counter(value) -> dict:
+    if isinstance(value, dict):
+        return {
+            "oponent_1": int(value.get("oponent_1", 0) or 0),
+            "oponent_2": int(value.get("oponent_2", 0) or 0),
+        }
+    return _empty_counter()
+
+
 def _normalize_estadistiques(stats: dict) -> dict:
     if not isinstance(stats, dict):
         return _default_combat_stats()
@@ -56,14 +65,19 @@ def _normalize_estadistiques(stats: dict) -> dict:
         if not isinstance(item, dict):
             continue
 
+        posicio = item.get("posicio", "other")
+        if posicio not in ALLOWED_POSITIONS:
+            posicio = "other"
+
         controlador = item.get("controlador", item.get("lluitador", "desconegut"))
+        if controlador not in ALLOWED_CONTROLLERS:
+            controlador = "desconegut"
 
         temps_per_posicio.append({
-            "lluitador": controlador,
-            "posicio": item.get("posicio", "other"),
+            "posicio": posicio,
+            "controlador": controlador,
             "segons": int(item.get("segons", 0) or 0),
-            "percentatge": int(round(float(item.get("percentatge", 0) or 0))),
-            "dominant": bool(item.get("dominant", False)),
+            "percentatge": float(item.get("percentatge", 0) or 0),
         })
 
     accions_clau = []
@@ -71,47 +85,55 @@ def _normalize_estadistiques(stats: dict) -> dict:
         if not isinstance(accio, dict):
             continue
 
+        lluitador = accio.get("lluitador")
+        if lluitador not in {"oponent_1", "oponent_2"}:
+            continue
+
+        tipus = accio.get("tipus")
+        if tipus not in {
+            "intent_finalitzacio",
+            "intent_enderroc",
+            "guard_pull",
+            "reversio",
+            "escapada",
+        }:
+            continue
+
         accions_clau.append({
             "temps": accio.get("temps", "00:00"),
-            "lluitador": accio.get("lluitador", "desconegut"),
-            "tipus": accio.get("tipus", "desconegut"),
-            "descripcio": accio.get("descripcio", accio.get("detall", "")),
-            "confianca": accio.get("confianca", "mitjana"),
+            "lluitador": lluitador,
+            "tipus": tipus,
+            "detall": accio.get("detall", accio.get("descripcio", "")),
+            "confianca": accio.get("confianca", "mitjana")
+            if accio.get("confianca") in ALLOWED_CONFIANCA
+            else "mitjana",
         })
 
     return {
+        "duracio_total_segons": int(stats.get("duracio_total_segons", 0) or 0),
         "temps_per_posicio": temps_per_posicio,
+        "temps_dominant_total": _normalize_counter(
+            stats.get("temps_dominant_total")
+        ),
         "accions_clau": accions_clau,
-
-        "temps_dominant_total": stats.get("temps_dominant_total"),
-        "temps_defensiu_total": stats.get("temps_defensiu_total"),
-        "temps_neutral_total": stats.get("temps_neutral_total"),
-
-        "canvis_control": resum.get(
-            "canvis_control",
-            stats.get("canvis_control", 0),
-        ),
-
-        "intents_finalitzacio": resum.get(
-            "intents_finalitzacio",
-            stats.get("intents_finalitzacio", {"oponent_1": 0, "oponent_2": 0}),
-        ),
-        "intents_enderroc": resum.get(
-            "intents_enderroc",
-            stats.get("intents_enderroc", {"oponent_1": 0, "oponent_2": 0}),
-        ),
-        "guard_pulls": resum.get(
-            "guard_pulls",
-            stats.get("guard_pulls", {"oponent_1": 0, "oponent_2": 0}),
-        ),
-        "reversions": resum.get(
-            "reversions",
-            stats.get("reversions", {"oponent_1": 0, "oponent_2": 0}),
-        ),
-        "escapades": resum.get(
-            "escapades",
-            stats.get("escapades", {"oponent_1": 0, "oponent_2": 0}),
-        ),
+        "resum_accions": {
+            "intents_finalitzacio": _normalize_counter(
+                resum.get("intents_finalitzacio")
+            ),
+            "intents_enderroc": _normalize_counter(
+                resum.get("intents_enderroc")
+            ),
+            "guard_pulls": _normalize_counter(
+                resum.get("guard_pulls")
+            ),
+            "reversions": _normalize_counter(
+                resum.get("reversions")
+            ),
+            "escapades": _normalize_counter(
+                resum.get("escapades")
+            ),
+            "canvis_control": int(resum.get("canvis_control", 0) or 0),
+        },
     }
 
 def _analysis_type(profile: str, mode: str) -> str:
@@ -236,52 +258,39 @@ def _default_general_coach_opponent() -> dict:
 
 
 def _default_student_stats() -> dict:
-    return {
-        "temps_per_posicio": [],
-        "temps_dominant_total": 0,
-        "temps_defensiu_total": 0,
-        "temps_neutral_total": 0,
-        "canvis_control": 0,
-        "intents_finalitzacio": 0,
-        "intents_enderroc": 0,
-        "guard_pulls": 0,
-        "reversions": 0,
-        "escapades": 0,
-    }
-
+    return _default_combat_stats()
 
 def _default_combat_stats() -> dict:
     return {
+        "duracio_total_segons": 0,
         "temps_per_posicio": [],
         "temps_dominant_total": {
             "oponent_1": 0,
             "oponent_2": 0,
         },
-        "temps_defensiu_total": {
-            "oponent_1": 0,
-            "oponent_2": 0,
-        },
-        "temps_neutral_total": 0,
-        "canvis_control": 0,
-        "intents_finalitzacio": {
-            "oponent_1": 0,
-            "oponent_2": 0,
-        },
-        "intents_enderroc": {
-            "oponent_1": 0,
-            "oponent_2": 0,
-        },
-        "guard_pulls": {
-            "oponent_1": 0,
-            "oponent_2": 0,
-        },
-        "reversions": {
-            "oponent_1": 0,
-            "oponent_2": 0,
-        },
-        "escapades": {
-            "oponent_1": 0,
-            "oponent_2": 0,
+        "accions_clau": [],
+        "resum_accions": {
+            "intents_finalitzacio": {
+                "oponent_1": 0,
+                "oponent_2": 0,
+            },
+            "intents_enderroc": {
+                "oponent_1": 0,
+                "oponent_2": 0,
+            },
+            "guard_pulls": {
+                "oponent_1": 0,
+                "oponent_2": 0,
+            },
+            "reversions": {
+                "oponent_1": 0,
+                "oponent_2": 0,
+            },
+            "escapades": {
+                "oponent_1": 0,
+                "oponent_2": 0,
+            },
+            "canvis_control": 0,
         },
     }
 
@@ -308,9 +317,9 @@ def _normalize_timeline_event(event: dict) -> dict:
     if posicio not in ALLOWED_POSITIONS:
         posicio = "other"
 
-    controlador = event.get("controlador", "incert")
+    controlador = event.get("controlador", "desconegut")
     if controlador not in ALLOWED_CONTROLLERS:
-        controlador = "incert"
+        controlador = "desconegut"
 
     tipus_event = event.get("tipus_event", "altre")
     if tipus_event not in ALLOWED_TIPUS_EVENT:
@@ -560,12 +569,17 @@ def analyze_video(
         parsed["estadistiques_estimades"] = _normalize_estadistiques(
             parsed["estadistiques_estimades"]
         )
-        parsed["estadistiques_estimades"]["temps_per_posicio"] = clean_stats[
-            "temps_per_posicio"
+        parsed["estadistiques_estimades"]["temps_per_posicio"] = [
+            {
+                "posicio": item.get("posicio", "other"),
+                "controlador": item.get("controlador", "desconegut"),
+                "segons": int(item.get("segons", 0) or 0),
+                "percentatge": float(item.get("percentatge", 0) or 0),
+            }
+            for item in clean_stats.get("temps_per_posicio", [])
         ]
-        # HASTA AQUÍ
 
-        parsed["estadistiques_derivades"] = clean_stats
+        parsed["estadistiques_derivades"] = _normalize_estadistiques(clean_stats)
     else:
         parsed.pop("estadistiques_derivades", None)
     

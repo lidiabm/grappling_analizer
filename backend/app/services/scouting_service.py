@@ -4,7 +4,7 @@ import time
 from typing import Any
 
 from app.services.gemini_client import client
-from app.prompts.scouting_prompts import build_scouting_prompt
+from app.prompts.scouting_prompts2 import build_scouting_prompt
 
 def _default_response(profile: str) -> dict:
     base = {

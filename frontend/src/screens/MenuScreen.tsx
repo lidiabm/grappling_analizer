@@ -21,18 +21,18 @@ const MENU_OPTIONS = {
   entrenador: [
     {
       feature: "entrenador-analysis",
-      title: "Analitzar combat",
+      title: "Anàlisi de combat",
       text: "Analitza un combat complet o centra’t en el rendiment d’un alumne concret.",
     },
     {
       feature: "entrenador-training-focus",
       title: "Focus d’entrenament",
-      text: "Detecta patrons d’evolució i prioritats tècniques per planificar millor les sessions.",
+      text: "Visualitza mètriques i patrons d’evolució per detectar prioritats tècniques d’entrenament.",
     },
     {
       feature: "entrenador-scouting",
       title: "Scouting d’oponent",
-      text: "Genera un informe tàctic del rival a partir de diversos vídeos de combat.",
+      text: "Estudia diversos vídeos d’un oponent i genera informació tàctica per preparar el combat.",
     },
     {
       feature: "entrenador-athletes",
@@ -43,23 +43,23 @@ const MENU_OPTIONS = {
   lluitador: [
     {
       feature: "lluitador-analysis",
-      title: "Analitzar combat",
-      text: "Analitza el teu combat i identifica punts forts, errors i accions de millora.",
+      title: "Anàlisi de combat",
+      text: "Analitza combats complets o els teus propis combats amb detall tècnic i tàctic. ",
     },
     {
       feature: "lluitador-scouting",
       title: "Scouting d’oponent",
-      text: "Estudia el teu proper rival i prepara un pla de combat més precís.",
+      text: "Carrega diversos vídeos del teu rival i prepara una estratègia de combat més precisa.",
     },
     {
       feature: "lluitador-evolution",
       title: "Evolució",
-      text: "Revisa la teva progressió en domini, defensa, accions clau i patrons recurrents.",
+      text: "Compara dos combats guardats i identifica la teva progressió i els canvis en el teu rendiment tècnic i tàctic.",
     },
     {
       feature: "lluitador-history",
       title: "Historial",
-      text: "Consulta els teus anàlisis guardats i revisa combats anteriors.",
+      text: "Consulta els teus anàlisis guardats i recupera combats anteriors quan ho necessitis.",
     },
   ],
 } as const;
@@ -86,7 +86,6 @@ export default function MenuScreen({
             onClick={() => onSelectProfile("lluitador")}
             >
             <span>Lluitador</span>
-            <small>Rendiment personal</small>
             </button>
 
             <button
@@ -97,7 +96,6 @@ export default function MenuScreen({
             onClick={() => onSelectProfile("entrenador")}
             >
             <span>Entrenador</span>
-            <small>Gestió d’alumnes</small>
             </button>
         </div>
 

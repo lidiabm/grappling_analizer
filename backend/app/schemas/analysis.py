@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -6,11 +6,51 @@ UserProfile = Literal["lluitador", "entrenador"]
 AnalysisMode = Literal["full_fight", "single_athlete"]
 OponentId = Literal["oponent_1", "oponent_2", "desconegut"]
 Confianca = Literal["alta", "mitjana", "baixa"]
+
 AnalysisType = Literal[
     "auto_analisi",
     "analisi_alumne",
     "combat_lluitador",
     "combat_entrenador",
+]
+
+Posicio = Literal[
+    "standing",
+    "closed_guard",
+    "open_guard",
+    "half_guard",
+    "side_control",
+    "mount",
+    "back_control",
+    "turtle",
+    "scramble",
+    "other",
+]
+
+Controlador = Literal["oponent_1", "oponent_2", "desconegut"]
+
+TipusEvent = Literal[
+    "inici_intercanvi",
+    "control",
+    "transicio",
+    "intent_finalitzacio",
+    "intent_enderroc",
+    "guard_pull",
+    "escape",
+    "reversio",
+    "scramble",
+    "pausa",
+    "finalitzacio",
+    "avantatge_posicional",
+    "altre",
+]
+
+AccioTipus = Literal[
+    "intent_finalitzacio",
+    "intent_enderroc",
+    "guard_pull",
+    "reversio",
+    "escapada",
 ]
 
 
@@ -26,7 +66,7 @@ class AnalysisRequest(BaseModel):
 
 
 class GuanyadorPerdedor(BaseModel):
-    id: str
+    id: OponentId
     descripcio: str
 
 
@@ -53,40 +93,66 @@ class ResumPartit(BaseModel):
 class TimelineEvent(BaseModel):
     inici: str
     fi: str
-    posicio: str
-    controlador: str
-    tipus_event: str
+    posicio: Posicio
+    controlador: Controlador
+    tipus_event: TipusEvent
     descripcio: str
     rellevancia: int = Field(ge=1, le=5)
     confianca: Confianca
 
 
 class TempsPosicio(BaseModel):
-    lluitador: str
-    posicio: str
-    segons: int
-    dominant: bool
+    posicio: Posicio
+    controlador: Controlador
+    segons: int = 0
+    percentatge: float = 0.0
+
+
+class AccioClau(BaseModel):
+    temps: str
+    lluitador: Literal["oponent_1", "oponent_2"]
+    tipus: AccioTipus
+    detall: str = ""
+    confianca: Confianca
+
+
+class ResumAccions(BaseModel):
+    intents_finalitzacio: Dict[str, int] = Field(
+        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
+    )
+    intents_enderroc: Dict[str, int] = Field(
+        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
+    )
+    guard_pulls: Dict[str, int] = Field(
+        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
+    )
+    reversions: Dict[str, int] = Field(
+        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
+    )
+    escapades: Dict[str, int] = Field(
+        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
+    )
+    canvis_control: int = 0
 
 
 class EstadistiquesEstimades(BaseModel):
-    temps_per_posicio: List[TempsPosicio]
-
-    temps_dominant_total: Optional[Union[int, Dict[str, int]]] = None
-    temps_defensiu_total: Optional[Union[int, Dict[str, int]]] = None
-    temps_neutral_total: Optional[int] = None
-
-    canvis_control: int = 0
-    intents_finalitzacio: Union[int, Dict[str, int]] = 0
-    intents_enderroc: Union[int, Dict[str, int]] = 0
-    guard_pulls: Union[int, Dict[str, int]] = 0
-    reversions: Optional[Union[int, Dict[str, int]]] = None
-    escapades: Optional[Union[int, Dict[str, int]]] = None
+    duracio_total_segons: int = 0
+    temps_per_posicio: List[TempsPosicio] = Field(default_factory=list)
+    temps_dominant_total: Dict[str, int] = Field(
+        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
+    )
+    accions_clau: List[AccioClau] = Field(default_factory=list)
+    resum_accions: ResumAccions = Field(default_factory=ResumAccions)
 
 
 class EstadistiquesDerivades(BaseModel):
-    temps_per_posicio: List[TempsPosicio]
-    temps_dominant_per_lluitador: Dict[str, int]
-    canvis_control_recalculats: int
+    duracio_total_segons: int = 0
+    temps_per_posicio: List[TempsPosicio] = Field(default_factory=list)
+    temps_dominant_total: Dict[str, int] = Field(
+        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
+    )
+    accions_clau: List[AccioClau] = Field(default_factory=list)
+    resum_accions: ResumAccions = Field(default_factory=ResumAccions)
 
 
 class AnalisiLluitador(BaseModel):
@@ -96,14 +162,14 @@ class AnalisiLluitador(BaseModel):
     model_de_combat: Optional[str] = None
     lectura_posicional: Optional[str] = None
 
-    patrons_tactics: List[str] = []
-    fortaleses_clau: List[str] = []
-    debilitats_clau: List[str] = []
+    patrons_tactics: List[str] = Field(default_factory=list)
+    fortaleses_clau: List[str] = Field(default_factory=list)
+    debilitats_clau: List[str] = Field(default_factory=list)
 
-    errors_i_correccions: List[Any] = []
-    encerts_clau: List[Any] = []
-    millores_recomanades: List[Any] = []
-    prioritats_de_treball: List[Any] = []
+    errors_i_correccions: List[Any] = Field(default_factory=list)
+    encerts_clau: List[Any] = Field(default_factory=list)
+    millores_recomanades: List[Any] = Field(default_factory=list)
+    prioritats_de_treball: List[Any] = Field(default_factory=list)
 
 
 class AnalisiOponent(BaseModel):
@@ -111,12 +177,12 @@ class AnalisiOponent(BaseModel):
     model_de_combat: Optional[str] = None
     lectura_posicional: Optional[str] = None
 
-    patrons_tactics: List[str] = []
-    fortaleses_clau: List[str] = []
-    debilitats_clau: List[str] = []
+    patrons_tactics: List[str] = Field(default_factory=list)
+    fortaleses_clau: List[str] = Field(default_factory=list)
+    debilitats_clau: List[str] = Field(default_factory=list)
 
-    errors_principals: List[Any] = []
-    encerts_clau: List[Any] = []
+    errors_principals: List[Any] = Field(default_factory=list)
+    encerts_clau: List[Any] = Field(default_factory=list)
 
     resum_rendiment: Optional[str] = None
 
@@ -128,7 +194,7 @@ class AnalisiOponents(BaseModel):
 
 class LecturaGlobal(BaseModel):
     dinamica_general: str = ""
-    moments_decisius: List[str] = []
+    moments_decisius: List[str] = Field(default_factory=list)
     lliçons_practiques: Optional[List[str]] = None
     claus_tactiques: Optional[List[str]] = None
 
@@ -142,7 +208,7 @@ class AnalysisBaseResponse(BaseModel):
     combat_info: CombatInfo
     resum_partit: ResumPartit
     timeline: List[TimelineEvent]
-    incerteses: List[str]
+    incerteses: List[str] = Field(default_factory=list)
 
 
 class AnalysisResponse(AnalysisBaseResponse):

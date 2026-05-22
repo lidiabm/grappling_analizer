@@ -49,7 +49,7 @@ function AnalysisScreen({ profile, onBack }: Props) {
         <p className="analysis-screen-subtitle">
           {isCoach
             ? "Analitza combats complets o centra’t en un esportista concret per detectar patrons, errors i oportunitats de millora."
-            : "Analitza el teu combat per entendre millor el teu rendiment, les teves decisions i les situacions clau."}
+            : "Analitza combats complets o centra’t en el teu rendiment."}
         </p>
       </header>
 

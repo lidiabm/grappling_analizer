@@ -95,39 +95,80 @@ export interface AnalisiOponents {
 }
 
 /* STATS */
+export type Posicio =
+  | "standing"
+  | "closed_guard"
+  | "open_guard"
+  | "half_guard"
+  | "side_control"
+  | "mount"
+  | "back_control"
+  | "turtle"
+  | "scramble"
+  | "other";
+
+export type Controlador = "oponent_1" | "oponent_2" | "desconegut";
+
+export type TipusEvent =
+  | "inici_intercanvi"
+  | "control"
+  | "transicio"
+  | "intent_finalitzacio"
+  | "intent_enderroc"
+  | "guard_pull"
+  | "escape"
+  | "reversio"
+  | "scramble"
+  | "pausa"
+  | "finalitzacio"
+  | "avantatge_posicional"
+  | "altre";
+
+export type AccioTipus =
+  | "intent_finalitzacio"
+  | "intent_enderroc"
+  | "guard_pull"
+  | "reversio"
+  | "escapada";
+
 export interface TempsPerPosicio {
-  lluitador: string;
-  posicio: string;
+  posicio: Posicio;
+  controlador: Controlador;
   segons: number;
-  dominant: boolean;
+  percentatge: number;
+}
+
+export interface AccioClau {
+  temps: string;
+  lluitador: "oponent_1" | "oponent_2";
+  tipus: AccioTipus;
+  detall: string;
+  confianca: Confianca;
+}
+
+export interface ResumAccions {
+  intents_finalitzacio: Record<string, number>;
+  intents_enderroc: Record<string, number>;
+  guard_pulls: Record<string, number>;
+  reversions: Record<string, number>;
+  escapades: Record<string, number>;
+  canvis_control: number;
 }
 
 export interface EstadistiquesEstimades {
+  duracio_total_segons: number;
   temps_per_posicio: TempsPerPosicio[];
-
-  temps_dominant_total?: Record<string, number>;
-  temps_defensiu_total?: Record<string, number>;
-  temps_neutral_total?: number;
-
-  canvis_control: number;
-
-  intents_finalitzacio: number | Record<string, number>;
-  intents_enderroc: number | Record<string, number>;
-  guard_pulls: number | Record<string, number>;
-  reversions?: number | Record<string, number>;
-  escapades?: number | Record<string, number>;
+  temps_dominant_total: Record<string, number>;
+  accions_clau: AccioClau[];
+  resum_accions: ResumAccions;
 }
 
 export interface EstadistiquesDerivades {
+  duracio_total_segons: number;
   temps_per_posicio: TempsPerPosicio[];
-  temps_dominant_per_lluitador: Record<string, number>;
-  canvis_control_recalculats: number;
-}
-
-export interface PatronsGlobals {
-  dinamiques_clau: string[];
-  moments_decisius: string[];
-  resum_comparable: string[];
+  temps_dominant_total: Record<string, number>;
+  accions_clau: AccioClau[];
+  resum_accions: ResumAccions;
 }
 
 /* RESPONSES */
@@ -140,7 +181,6 @@ export interface FullFightAnalysisResponse {
   analisi_oponents: AnalisiOponents;
   estadistiques_estimades: EstadistiquesEstimades;
   estadistiques_derivades?: EstadistiquesDerivades;
-  patrons_globals: PatronsGlobals;
   incerteses: string[];
   perfil: UserProfile;
 }
@@ -153,7 +193,6 @@ export interface SingleAthleteAnalysisResponse {
   timeline: TimelineEvent[];
   analisi_lluitador: AnalisiOponent;
   estadistiques_estimades: EstadistiquesEstimades;
-  patrons_globals: PatronsGlobals;
   incerteses: string[];
   perfil: UserProfile;
 }
@@ -224,7 +263,6 @@ export type TrainingFocusResponse = {
 };
 
 /* SCOUTING */
-
 export interface ScoutingRivalInfo {
   nom_visible: string;
   descripcio_visual: string;
@@ -252,9 +290,73 @@ export interface InformeEntrenadorScouting {
   riscos_principals: string[];
 }
 
+export type ScoutingSeguimentRival = "clar" | "parcial" | "incert";
+
+export interface ScoutingPerVideoStats {
+  video: number | string;
+  fitxer: string;
+  seguiment_rival: ScoutingSeguimentRival;
+  atacs_iniciats: number | "desconegut";
+  atacs_efectius: number | "desconegut";
+  intents_passada_guardia: number | "desconegut";
+  passades_guardia_efectives: number | "desconegut";
+  raspades_intentades: number | "desconegut";
+  raspades_efectives: number | "desconegut";
+  submissions_intentades: number | "desconegut";
+  submissions_encaixades: number | "desconegut";
+  recuperacions_guardia: number | "desconegut";
+  perdues_posicio: number | "desconegut";
+  temps_dominant_aproximat: string;
+  situacions_mes_frequents: string[];
+  observacions: string[];
+}
+
+export interface ScoutingGlobalStats {
+  accions_mes_frequents: string[];
+  situacions_mes_repetides: string[];
+  zones_de_risc: string[];
+  tendencies_tactiques: string[];
+  patrons_amb_mes_evidencia: string[];
+  patrons_amb_poca_evidencia: string[];
+}
+
+export interface ScoutingNumericProfile {
+  pressio: number;
+  agressivitat: number;
+  control_posicional: number;
+  defensa: number;
+  perill_submissio: number;
+  explosivitat: number;
+  adaptabilitat: number;
+}
+
+export interface ScoutingStats {
+  nota: string;
+  nivell_fiabilitat_estadistica: Confianca;
+  per_video: ScoutingPerVideoStats[];
+  resum_global: ScoutingGlobalStats;
+  perfil_numeric: ScoutingNumericProfile;
+}
+
+export type ScoutingChartDatum = {
+  label: string;
+  valor: number;
+};
+
+export type ScoutingChart = {
+  id: string;
+  tipus: "barres" | "radar" | string;
+  titol: string;
+  descripcio?: string | null;
+  dades: ScoutingChartDatum[];
+  escala?: string | null;
+  interpretacio?: string | null;
+};
+
 export interface BaseScoutingResponse {
   mode: "scouting";
   perfil: UserProfile;
+  analysis_type: "scouting_lluitador" | "scouting_entrenador";
   rival_info: ScoutingRivalInfo;
   resum_rival: string;
   patrons_recurrents: string[];
@@ -267,13 +369,17 @@ export interface LluitadorScoutingResponse extends BaseScoutingResponse {
   perfil: "lluitador";
   analysis_type: "scouting_lluitador";
   informe_lluitador: InformeLluitadorScouting;
+  informe_entrenador?: null;
+  estadistiques?: null;
+  grafics_suggerits?: null;
 }
 
 export interface EntrenadorScoutingResponse extends BaseScoutingResponse {
   perfil: "entrenador";
   analysis_type: "scouting_entrenador";
+  informe_lluitador?: null;
   informe_entrenador: InformeEntrenadorScouting;
-  estadistiques: any;
+  estadistiques: ScoutingStats;
   grafics_suggerits: ScoutingChart[];
 }
 
@@ -286,33 +392,58 @@ export type ScoutingVideoInput = {
   rivalDescription: string;
 };
 
-export type ScoutingChartDatum = {
-  label: string;
-  valor: number | string;
-};
-
-export type ScoutingChart = {
-  id: string;
-  tipus: "barres" | "radar" | string;
-  titol: string;
-  descripcio?: string;
-  dades: ScoutingChartDatum[];
-  escala?: string;
-  interpretacio?: string;
-};
+/* FIGHTER EVOLUTION */
+export type FighterEvolutionMagnitude = "alta" | "mitjana" | "baixa";
 
 export type FighterEvolutionRequest = {
-  old_analysis: AnalysisResponse;
-  new_analysis: AnalysisResponse;
+  old_analysis: unknown;
+  new_analysis: unknown;
+};
+
+export type FighterEvolutionInfo = {
+  nom_visible: string;
+  descripcio_visual: string;
+  confianca_analisi: FighterEvolutionMagnitude;
+};
+
+export type FighterEvolutionStablePatterns = {
+  fortaleses_consolidades: string[];
+  debilitats_persistents: string[];
+};
+
+export type FighterEvolutionTactical = {
+  model_antic: string;
+  model_recent: string;
+  canvi_observat: string;
+  interpretacio: string;
+};
+
+export type FighterEvolutionTechnical = {
+  tecniques_millorades: string[];
+  tecniques_empitjorades: string[];
+  tecniques_noves: string[];
+  tecniques_abandonades: string[];
 };
 
 export type FighterEvolutionResponse = {
-  summary: string;
-  improvements: string[];
+  mode: "evolucio";
+  analysis_type: "evolucio_lluitador";
+  fighter_info: FighterEvolutionInfo;
+  resum_evolucio: string;
+  magnitud_canvi_global: FighterEvolutionMagnitude;
+  millores: string[];
   regressions: string[];
-  stablePatterns: string[];
-  technicalEvolution: string;
-  tacticalEvolution: string;
-  recommendedFocus: string[];
-  conclusion: string;
+  patrons_estables: FighterEvolutionStablePatterns;
+  evolucio_tactica: FighterEvolutionTactical;
+  evolucio_tecnica: FighterEvolutionTechnical;
+  conclusio: string;
+  incerteses: string[];
+
+  comparativa_numerica?: unknown;
+  grafics_suggerits?: unknown[];
+  recomanacions_entrenament?: {
+    prioritat_alta: string[];
+    prioritat_mitjana: string[];
+    manteniment: string[];
+  };
 };

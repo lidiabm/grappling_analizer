@@ -122,7 +122,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
 
           <h2 className="scouting-title">
             Informe tàctic per a{" "}
-            <span>{isCoach ? "entrenador" : "lluitador"}</span>
+            {isCoach ? "entrenador" : "lluitador"}
           </h2>
 
           <p className="scouting-subtitle">
@@ -319,7 +319,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
             <ResultBlock title="Debilitats" items={result.debilitats} />
           </div>
 
-          {result.perfil === "entrenador" && (
+          {result.perfil === "entrenador" && result.informe_entrenador && (
             <>
               <div className="scouting-result-grid scouting-result-grid-coach">
                 <ResultBlock
@@ -343,7 +343,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
             </>
           )}
 
-          {result.perfil === "lluitador" && (
+          {result.perfil === "lluitador" && result.informe_lluitador && (
             <div className="scouting-result-grid scouting-result-grid-fighter">
               <ResultBlock
                 title="Amenaces principals"
