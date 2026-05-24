@@ -217,13 +217,16 @@ export type SavedAnalysis = {
 export type EvolutionMetric = {
   fightId: string;
   label: string;
+
   dominantTime: number;
-  defensiveTime: number;
+  controlledTime: number;
   neutralTime: number;
   totalFightTime: number;
+
   dominantPct: number;
-  defensivePct: number;
+  controlledPct: number;
   neutralPct: number;
+
   submissionAttempts: number;
   takedownAttempts: number;
   guardPulls: number;

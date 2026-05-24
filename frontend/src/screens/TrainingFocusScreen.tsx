@@ -59,21 +59,30 @@ function getTrendClass(value: number, positiveIsGood = true) {
   return isGood ? "positive" : "negative";
 }
 
+function getControlledChange(student: StudentFocus) {
+  const summary = student.summary as StudentFocus["summary"] & {
+    controlledChange?: number;
+    defensiveChange?: number;
+  };
+
+  return summary.controlledChange ?? summary.defensiveChange ?? 0;
+}
+
 function getStudentAlerts(student: StudentFocus) {
   const alerts: string[] = [];
   const lastMetric = student.metrics.at(-1);
 
   if (!lastMetric) return alerts;
 
-  if (lastMetric.defensivePct >= 40) {
-    alerts.push("Passa massa temps en situacions defensives.");
+  if (lastMetric.controlledPct >= 40) {
+    alerts.push("Passa massa temps sota control del rival.");
   }
 
   if (lastMetric.dominantPct < 25) {
     alerts.push("Té poc temps de control dominant.");
   }
 
-  if (lastMetric.escapes === 0 && lastMetric.defensiveTime > 60) {
+  if (lastMetric.escapes === 0 && lastMetric.controlledTime > 60) {
     alerts.push("Necessita treballar sortides i recuperació de posició.");
   }
 
@@ -96,10 +105,7 @@ function getRatePerMinute(total: number, seconds: number) {
 function getStudentRates(student: StudentFocus) {
   const totals = student.metrics.reduce(
     (acc, item) => {
-      const totalSeconds =
-        item.dominantTime + item.defensiveTime + item.neutralTime;
-
-      acc.seconds += totalSeconds;
+      acc.seconds += item.totalFightTime;
       acc.submissions += item.submissionAttempts;
       acc.takedowns += item.takedownAttempts;
       acc.escapes += item.escapes;
@@ -232,7 +238,7 @@ export default function EntrenadorTrainingFocusScreen({ onBack }: Props) {
           <span className="training-focus-eyebrow">Alumnes</span>
           <h3 className="training-focus-card-title">Evolució individual</h3>
           <p className="training-focus-text">
-            Selecciona un alumne per veure su evolución combat a combat.
+            Selecciona un alumne per veure la seva evolució combat a combat.
           </p>
         </div>
 
@@ -270,9 +276,7 @@ function GlobalFocusBlock({ data }: { data: TrainingFocusResponse }) {
       <div className="training-focus-card">
         <div className="training-focus-section-heading">
           <span className="training-focus-eyebrow">Resum global</span>
-          <h3 className="training-focus-card-title">
-            Estat general del grup
-          </h3>
+          <h3 className="training-focus-card-title">Estat general del grup</h3>
         </div>
 
         <div className="evolution-summary-grid">
@@ -293,9 +297,7 @@ function GlobalFocusBlock({ data }: { data: TrainingFocusResponse }) {
         </div>
 
         <div className="opponent-block">
-          <span className="opponent-block-title">
-            Prioritats recomanades
-          </span>
+          <span className="opponent-block-title">Prioritats recomanades</span>
 
           <p className="opponent-block-subtitle">
             Basades en les últimes {data.focusWeeks} setmanes.
@@ -320,6 +322,7 @@ function GlobalFocusBlock({ data }: { data: TrainingFocusResponse }) {
 function StudentBlock({ student }: { student: StudentFocus }) {
   const alerts = useMemo(() => getStudentAlerts(student), [student]);
   const rates = useMemo(() => getStudentRates(student), [student]);
+  const controlledChange = getControlledChange(student);
 
   return (
     <>
@@ -356,13 +359,13 @@ function StudentBlock({ student }: { student: StudentFocus }) {
 
           <div
             className={`evolution-card ${getTrendClass(
-              student.summary.defensiveChange,
+              controlledChange,
               false
             )}`}
           >
-            <span>Defensa</span>
-            <strong>{formatChange(student.summary.defensiveChange, "s")}</strong>
-            <small>{getTrendText(student.summary.defensiveChange, false)}</small>
+            <span>Temps sota control rival</span>
+            <strong>{formatChange(controlledChange, "s")}</strong>
+            <small>{getTrendText(controlledChange, false)}</small>
           </div>
 
           <div

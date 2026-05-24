@@ -23,6 +23,24 @@ function getAnalysisDate(analysis: SavedAnalysis) {
   return analysis.fightDate || analysis.createdAt;
 }
 
+function getAnalysisTimestamp(analysis?: SavedAnalysis) {
+  if (!analysis) return 0;
+
+  const date = getAnalysisDate(analysis);
+  const timestamp = new Date(date).getTime();
+
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function isOldReallyOlder(
+  oldAnalysis?: SavedAnalysis,
+  newAnalysis?: SavedAnalysis
+) {
+  if (!oldAnalysis || !newAnalysis) return false;
+
+  return getAnalysisTimestamp(oldAnalysis) < getAnalysisTimestamp(newAnalysis);
+}
+
 function LluitadorEvolutionScreen({ onBack }: Props) {
   const analyses = useMemo(() => {
     return getSavedAnalyses()
@@ -32,9 +50,7 @@ function LluitadorEvolutionScreen({ onBack }: Props) {
           analysis.result.mode === "single_athlete"
       )
       .sort(
-        (a, b) =>
-          new Date(getAnalysisDate(b)).getTime() -
-          new Date(getAnalysisDate(a)).getTime()
+        (a, b) => getAnalysisTimestamp(b) - getAnalysisTimestamp(a)
       );
   }, []);
 
@@ -47,10 +63,13 @@ function LluitadorEvolutionScreen({ onBack }: Props) {
   const oldAnalysis = analyses.find((analysis) => analysis.id === oldAnalysisId);
   const newAnalysis = analyses.find((analysis) => analysis.id === newAnalysisId);
 
+  const hasValidChronology = isOldReallyOlder(oldAnalysis, newAnalysis);
+
   const canAnalyze =
     Boolean(oldAnalysis) &&
     Boolean(newAnalysis) &&
     oldAnalysisId !== newAnalysisId &&
+    hasValidChronology &&
     !isAnalyzing;
 
   async function handleAnalyzeEvolution() {
@@ -61,6 +80,11 @@ function LluitadorEvolutionScreen({ onBack }: Props) {
 
     if (oldAnalysis.id === newAnalysis.id) {
       setError("Has de seleccionar dos anàlisis diferents.");
+      return;
+    }
+
+    if (!isOldReallyOlder(oldAnalysis, newAnalysis)) {
+      setError("L’anàlisi antic ha de ser anterior a l’anàlisi recent.");
       return;
     }
 
@@ -150,6 +174,19 @@ function LluitadorEvolutionScreen({ onBack }: Props) {
                 }}
               />
             </div>
+
+            {oldAnalysis &&
+              newAnalysis &&
+              oldAnalysisId !== newAnalysisId &&
+              !hasValidChronology && (
+                <div className="fighter-evolution-alert">
+                  <strong>Ordre incorrecte</strong>
+                  <span>
+                    L’anàlisi antic ha de tenir una data anterior a l’anàlisi
+                    recent.
+                  </span>
+                </div>
+              )}
 
             {error && (
               <div className="fighter-evolution-alert">

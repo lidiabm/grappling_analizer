@@ -1,14 +1,14 @@
 import {
-  BarChart,
   Bar,
-  PieChart,
-  Pie,
+  BarChart,
   Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
 
 import {
@@ -28,6 +28,43 @@ type Props = {
 function getCounterValue(counter: any, fighter: "oponent_1" | "oponent_2") {
   if (!counter || typeof counter !== "object") return 0;
   return normalizeNumber(counter[fighter]);
+}
+
+function DomainTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+
+  const item = payload[0];
+  const color = item?.payload?.color ?? "#f5f7fa";
+
+  return (
+    <div
+      style={{
+        backgroundColor: "#111318",
+        border: "1px solid rgba(201, 168, 106, 0.22)",
+        borderRadius: "12px",
+        padding: "12px 14px",
+      }}
+    >
+      <div
+        style={{
+          color,
+          fontWeight: 700,
+          marginBottom: "6px",
+        }}
+      >
+        {item.payload.name}
+      </div>
+
+      <div
+        style={{
+          color,
+          fontWeight: 600,
+        }}
+      >
+        Temps dominant : {item.value}s
+      </div>
+    </div>
+  );
 }
 
 export default function StatsCharts({ stats }: Props) {
@@ -53,13 +90,25 @@ export default function StatsCharts({ stats }: Props) {
   const actionData = [
     {
       name: "Finalitzacions",
-      oponent_1: getCounterValue(resumAccions.intents_finalitzacio, "oponent_1"),
-      oponent_2: getCounterValue(resumAccions.intents_finalitzacio, "oponent_2"),
+      oponent_1: getCounterValue(
+        resumAccions.intents_finalitzacio,
+        "oponent_1"
+      ),
+      oponent_2: getCounterValue(
+        resumAccions.intents_finalitzacio,
+        "oponent_2"
+      ),
     },
     {
       name: "Enderrocs",
-      oponent_1: getCounterValue(resumAccions.intents_enderroc, "oponent_1"),
-      oponent_2: getCounterValue(resumAccions.intents_enderroc, "oponent_2"),
+      oponent_1: getCounterValue(
+        resumAccions.intents_enderroc,
+        "oponent_1"
+      ),
+      oponent_2: getCounterValue(
+        resumAccions.intents_enderroc,
+        "oponent_2"
+      ),
     },
     {
       name: "Guard pulls",
@@ -110,6 +159,11 @@ export default function StatsCharts({ stats }: Props) {
                 </Pie>
 
                 <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#111318",
+                    border: "1px solid rgba(201, 168, 106, 0.22)",
+                    borderRadius: "12px",
+                  }}
                   formatter={(value: any, _name: any, item: any) => [
                     `${value}s (${item?.payload?.percentatge ?? 0}%)`,
                     item?.payload?.name,
@@ -118,7 +172,10 @@ export default function StatsCharts({ stats }: Props) {
 
                 <Legend
                   formatter={(value: any) => {
-                    const item = positionData.find((p: any) => p.name === value);
+                    const item = positionData.find(
+                      (p: any) => p.name === value
+                    );
+
                     return `${value} · ${item?.percentatge ?? 0}%`;
                   }}
                 />
@@ -141,22 +198,17 @@ export default function StatsCharts({ stats }: Props) {
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={(value) => `${value}s`} />
 
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#111318",
-                    border: "1px solid rgba(201, 168, 106, 0.22)",
-                    borderRadius: "12px",
-                  }}
-                  labelStyle={{ color: "#f5f7fa" }}
-                />
+                <Tooltip content={<DomainTooltip />} />
 
                 <Bar
                   dataKey="dominant"
-                  name="Temps dominant"
                   radius={[10, 10, 0, 0]}
                 >
                   {controlData.map((item) => (
-                    <Cell key={item.name} fill={item.color} />
+                    <Cell
+                      key={item.name}
+                      fill={item.color}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -177,7 +229,15 @@ export default function StatsCharts({ stats }: Props) {
               <BarChart data={actionData}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis allowDecimals={false} />
-                <Tooltip />
+
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#111318",
+                    border: "1px solid rgba(201, 168, 106, 0.22)",
+                    borderRadius: "12px",
+                  }}
+                />
+
                 <Legend />
 
                 <Bar

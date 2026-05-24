@@ -1,3 +1,4 @@
+#analysis_service2.py
 import json
 import re
 import time
@@ -350,115 +351,103 @@ def _normalize_timeline_event(event: dict) -> dict:
 
 def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
     analysis_type = _analysis_type(profile, mode)
-    fallback = _default_response(profile, mode)
 
     if not text or not text.strip():
-        fallback["incerteses"] = ["Resposta buida del model"]
-        return fallback
+        raise ValueError("Resposta buida del model")
 
     cleaned = _strip_code_fences(text)
     cleaned = _extract_json_object(cleaned)
 
     try:
         data = json.loads(cleaned)
-        if not isinstance(data, dict):
-            fallback["incerteses"] = ["La resposta del model no és un objecte JSON"]
-            return fallback
+    except json.JSONDecodeError as e:
+        print("ERROR PARSEJANT JSON DE GEMINI:")
+        print(cleaned[:3000])
+        raise ValueError(f"Gemini ha retornat JSON invàlid: {e}") from e
 
-        result = _default_response(profile, mode)
+    if not isinstance(data, dict):
+        raise ValueError("La resposta del model no és un objecte JSON")
 
-        result["mode"] = mode
-        result["perfil"] = profile
-        result["analysis_type"] = analysis_type
-        result["selected_oponent_id"] = data.get(
-            "selected_oponent_id",
-            result["selected_oponent_id"],
-        )
+    result = _default_response(profile, mode)
 
-        if mode == "full_fight":
-            result["selected_oponent_id"] = "desconegut"
+    result["mode"] = mode
+    result["perfil"] = profile
+    result["analysis_type"] = analysis_type
+    result["selected_oponent_id"] = data.get(
+        "selected_oponent_id",
+        result["selected_oponent_id"],
+    )
 
-        if isinstance(data.get("combat_info"), dict):
-            combat_info = data["combat_info"]
-            result["combat_info"] = {
-                "oponents": combat_info.get(
-                    "oponents",
-                    result["combat_info"]["oponents"],
-                ),
-                "durada_estimada": combat_info.get("durada_estimada", "00:00"),
-                "nivell_confianca_global": combat_info.get(
-                    "nivell_confianca_global",
-                    "baixa",
-                ),
-            }
+    if mode == "full_fight":
+        result["selected_oponent_id"] = "desconegut"
 
-        if isinstance(data.get("resum_partit"), dict):
-            resum = data["resum_partit"]
-            result["resum_partit"] = {
-                "guanyador": resum.get(
-                    "guanyador",
-                    result["resum_partit"]["guanyador"],
-                ),
-                "metode": resum.get("metode", "desconegut"),
-                "tipus_submissio": resum.get("tipus_submissio", "desconegut"),
-                "resum_breu": resum.get("resum_breu", ""),
-            }
+    if isinstance(data.get("combat_info"), dict):
+        combat_info = data["combat_info"]
+        result["combat_info"] = {
+            "oponents": combat_info.get(
+                "oponents",
+                result["combat_info"]["oponents"],
+            ),
+            "durada_estimada": combat_info.get("durada_estimada", "00:00"),
+            "nivell_confianca_global": combat_info.get(
+                "nivell_confianca_global",
+                "baixa",
+            ),
+        }
 
-        raw_timeline = data.get("timeline", [])
-        if isinstance(raw_timeline, list):
-            result["timeline"] = [
-                _normalize_timeline_event(event)
-                for event in raw_timeline
-                if isinstance(event, dict)
-            ]
+    if isinstance(data.get("resum_partit"), dict):
+        resum = data["resum_partit"]
+        result["resum_partit"] = {
+            "guanyador": resum.get(
+                "guanyador",
+                result["resum_partit"]["guanyador"],
+            ),
+            "perdedor": resum.get("perdedor"),
+            "metode": resum.get("metode", "desconegut"),
+            "tipus_submissio": resum.get("tipus_submissio", "desconegut"),
+            "resum_breu": resum.get("resum_breu", ""),
+        }
 
-        if "incerteses" in data and isinstance(data["incerteses"], list):
-            result["incerteses"] = data["incerteses"]
+    raw_timeline = data.get("timeline", [])
+    if isinstance(raw_timeline, list):
+        result["timeline"] = [
+            _normalize_timeline_event(event)
+            for event in raw_timeline
+            if isinstance(event, dict)
+        ]
 
-        if analysis_type in {"auto_analisi", "analisi_alumne"}:
-            if isinstance(data.get("analisi_lluitador"), dict):
-                result["analisi_lluitador"] = data["analisi_lluitador"]
+    if isinstance(data.get("incerteses"), list):
+        result["incerteses"] = data["incerteses"]
 
-            if analysis_type == "analisi_alumne":
-                if isinstance(data.get("estadistiques_estimades"), dict):
-                    result["estadistiques_estimades"] = data["estadistiques_estimades"]
+    if analysis_type in {"auto_analisi", "analisi_alumne"}:
+        if isinstance(data.get("analisi_lluitador"), dict):
+            result["analisi_lluitador"] = data["analisi_lluitador"]
 
-            result.pop("analisi_oponents", None)
-            result.pop("lectura_global", None)
+        if analysis_type == "analisi_alumne":
+            result["estadistiques_estimades"] = _default_combat_stats()
 
-            if analysis_type == "auto_analisi":
-                result.pop("estadistiques_estimades", None)
+        result.pop("analisi_oponents", None)
+        result.pop("lectura_global", None)
 
-        elif analysis_type in {"combat_lluitador", "combat_entrenador"}:
-            if isinstance(data.get("analisi_oponents"), dict):
-                result["analisi_oponents"] = data["analisi_oponents"]
+        if analysis_type == "auto_analisi":
+            result.pop("estadistiques_estimades", None)
 
-            if isinstance(data.get("lectura_global"), dict):
-                result["lectura_global"] = data["lectura_global"]
+    elif analysis_type in {"combat_lluitador", "combat_entrenador"}:
+        if isinstance(data.get("analisi_oponents"), dict):
+            result["analisi_oponents"] = data["analisi_oponents"]
 
-            if analysis_type == "combat_entrenador":
-                if isinstance(data.get("estadistiques_estimades"), dict):
-                    result["estadistiques_estimades"] = data["estadistiques_estimades"]
-            else:
-                result.pop("estadistiques_estimades", None)
+        if isinstance(data.get("lectura_global"), dict):
+            result["lectura_global"] = data["lectura_global"]
 
-            result.pop("analisi_lluitador", None)
+        if analysis_type == "combat_entrenador":
+            result["estadistiques_estimades"] = _default_combat_stats()
+        else:
+            result.pop("estadistiques_estimades", None)
 
-        # AÑADIDOOOOO
-        if isinstance(result.get("estadistiques_estimades"), dict):
-            result["estadistiques_estimades"] = _normalize_estadistiques(
-                result["estadistiques_estimades"]
-            )
-        # HASTA AQUÍ
+        result.pop("analisi_lluitador", None)
 
-        return result
-
-    except Exception as e:
-        print("ERROR PARSEJANT JSON DE GEMINI:", repr(cleaned))
-        print("EXCEPCIÓ:", str(e))
-        fallback["incerteses"] = [cleaned]
-        return fallback
-    
+    return result
+  
 def _wait_until_file_is_active(file_name: str, timeout_seconds: int = 180) -> None:
     """
     Espera fins que el fitxer pujat estigui preparat per a ser utilitzat (en estat ACTIVE). 
@@ -532,9 +521,12 @@ def analyze_video(
     Paràmetres:
         - file_path: ruta local del fitxer de vídeo
         - profile: perfil d'anàlisi que es farà servir per construir el prompt
+        - mode: tipus d'anàlisi que es vol generar
+        - athlete_identifier_type: tipus d'identificador de l'atleta, si aplica
+        - athlete_identifier_value: valor de l'identificador de l'atleta, si aplica
 
     Retorna:
-        - diccionari amb summary, key_moments, technical_observations, recommendations i profile
+        - diccionari amb el resultat estructurat de l'anàlisi
     """
     prompt = build_prompt(
         profile=profile,
@@ -542,7 +534,7 @@ def analyze_video(
         athlete_identifier_type=athlete_identifier_type,
         athlete_identifier_value=athlete_identifier_value,
     )
-    
+
     # Puja el vídeo a Gemini perquè el model el pugui processar
     uploaded_file = client.files.upload(file=file_path)
 
@@ -552,35 +544,23 @@ def analyze_video(
     # Demana al model que analitzi el vídeo seguint el prompt indicat
     response = _generate_content_with_retry(uploaded_file, prompt)
 
+    # Parseja la resposta del model. Si Gemini retorna JSON invàlid,
+    # _safe_parse_response llençarà un error i el backend retornarà 500.
+    # Això evita mostrar un informe buit amb el JSON brut dins d'incerteses.
     parsed = _safe_parse_response(response.text, profile, mode)
-    
-    analysis_type = _analysis_type(profile, mode)
 
+    # En mode entrenador + combat complet, les estadístiques han de sortir
+    # del timeline normalitzat, no directament de Gemini.
+    # Així evitem llistes gegants o duplicades a "temps_per_posicio".
     if profile == "entrenador" and mode == "full_fight" and parsed.get("timeline"):
         clean_stats = derive_stats_from_timeline(parsed["timeline"])
+        clean_stats = _normalize_estadistiques(clean_stats)
 
-        parsed.setdefault("estadistiques_estimades", _default_combat_stats())
+        parsed["estadistiques_estimades"] = clean_stats
+        parsed["estadistiques_derivades"] = clean_stats
 
-        # AÑADIDOOOOOOOOO
-        # parsed["estadistiques_estimades"]["temps_per_posicio"] = clean_stats[
-        #     "temps_per_posicio"
-        # ]
-        parsed.setdefault("estadistiques_estimades", _default_combat_stats())
-        parsed["estadistiques_estimades"] = _normalize_estadistiques(
-            parsed["estadistiques_estimades"]
-        )
-        parsed["estadistiques_estimades"]["temps_per_posicio"] = [
-            {
-                "posicio": item.get("posicio", "other"),
-                "controlador": item.get("controlador", "desconegut"),
-                "segons": int(item.get("segons", 0) or 0),
-                "percentatge": float(item.get("percentatge", 0) or 0),
-            }
-            for item in clean_stats.get("temps_per_posicio", [])
-        ]
-
-        parsed["estadistiques_derivades"] = _normalize_estadistiques(clean_stats)
     else:
+        # En la resta de casos no necessitem estadístiques derivades.
         parsed.pop("estadistiques_derivades", None)
-    
+
     return parsed

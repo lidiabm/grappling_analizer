@@ -34,12 +34,12 @@ export default function EvolutionCharts({
 }: Props) {
   const hasControlData = hasAnyValue(metrics, [
     "dominantTime",
-    "defensiveTime",
+    "controlledTime",
   ]);
 
   const hasPctData = hasAnyValue(metrics, [
     "dominantPct",
-    "defensivePct",
+    "controlledPct",
   ]);
 
   const actionData = metrics.map((item) => ({
@@ -70,22 +70,15 @@ export default function EvolutionCharts({
         <div className="stats-chart-card stats-chart-card-large">
           <div className="stats-chart-header">
             <h4>Evolució del control</h4>
-            <span>
-              Temps dominant i defensiu per combat
-            </span>
+            <span>Temps dominant i temps sota control rival per combat</span>
           </div>
 
           <div className="stats-chart">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={metrics}>
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10 }}
-                />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} />
 
-                <YAxis
-                  tickFormatter={(value) => `${value}s`}
-                />
+                <YAxis tickFormatter={(value) => `${value}s`} />
 
                 <Tooltip />
                 <Legend />
@@ -101,8 +94,8 @@ export default function EvolutionCharts({
 
                 <Line
                   type="linear"
-                  dataKey="defensiveTime"
-                  name="Temps defensiu"
+                  dataKey="controlledTime"
+                  name="Temps sota control rival"
                   stroke="#dc2626"
                   strokeWidth={3}
                   dot={{ r: 4 }}
@@ -117,31 +110,20 @@ export default function EvolutionCharts({
         <div className="stats-chart-card stats-chart-card-large">
           <div className="stats-chart-header">
             <h4>Evolució percentual del control</h4>
-
             <span>
-              Percentatge de domini i defensa sobre el
-              temps total
+              Percentatge de domini i temps sota control rival sobre el temps
+              total
             </span>
           </div>
 
           <div className="stats-chart">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={metrics}>
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10 }}
-                />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} />
 
-                <YAxis
-                  tickFormatter={(value) => `${value}%`}
-                />
+                <YAxis tickFormatter={(value) => `${value}%`} />
 
-                <Tooltip
-                  formatter={(value: any) => [
-                    `${value}%`,
-                    "",
-                  ]}
-                />
+                <Tooltip formatter={(value: any) => [`${value}%`, ""]} />
 
                 <Legend />
 
@@ -156,8 +138,8 @@ export default function EvolutionCharts({
 
                 <Line
                   type="linear"
-                  dataKey="defensivePct"
-                  name="% defensa"
+                  dataKey="controlledPct"
+                  name="% sota control rival"
                   stroke="#dc2626"
                   strokeWidth={3}
                   dot={{ r: 4 }}
@@ -172,20 +154,13 @@ export default function EvolutionCharts({
         <div className="stats-chart-card stats-chart-card-large">
           <div className="stats-chart-header">
             <h4>Accions clau per combat</h4>
-
-            <span>
-              Comparativa d’accions ofensives i
-              defensives
-            </span>
+            <span>Comparativa d’accions ofensives i defensives</span>
           </div>
 
           <div className="stats-chart">
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={actionData}>
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10 }}
-                />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} />
 
                 <YAxis allowDecimals={false} />
 
@@ -231,10 +206,7 @@ export default function EvolutionCharts({
         <div className="stats-chart-card stats-chart-card-large">
           <div className="stats-chart-header">
             <h4>Posicions acumulades</h4>
-
-            <span>
-              Temps total per posició en tots els combats
-            </span>
+            <span>Temps total per posició en tots els combats</span>
           </div>
 
           <div className="stats-chart">
@@ -251,9 +223,7 @@ export default function EvolutionCharts({
                   {formattedPositions.map((_, index) => (
                     <Cell
                       key={index}
-                      fill={
-                        CHART_COLORS[index % CHART_COLORS.length]
-                      }
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
                     />
                   ))}
                 </Pie>
