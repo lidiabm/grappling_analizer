@@ -1,4 +1,4 @@
-/* CORE TYPES */
+/* TYPES.ts */
 export type UserProfile = "lluitador" | "entrenador";
 export type OponentId = "oponent_1" | "oponent_2" | "desconegut";
 export type Confianca = "alta" | "mitjana" | "baixa";
@@ -46,6 +46,13 @@ export interface ResumPartit {
   metode: string;
   tipus_submissio: string;
   resum_breu: string;
+}
+
+export interface DebugRequest {
+  profile?: string | null;
+  mode?: string | null;
+  athlete_identifier_type?: string | null;
+  athlete_identifier_value?: string | null;
 }
 
 export interface TimelineEvent {
@@ -146,9 +153,19 @@ export interface AccioClau {
   confianca: Confianca;
 }
 
+export interface AttemptCount {
+  intents: number;
+  reeixits: number;
+}
+
+export interface FighterAttemptCounter {
+  oponent_1: AttemptCount;
+  oponent_2: AttemptCount;
+}
+
 export interface ResumAccions {
-  intents_finalitzacio: Record<string, number>;
-  intents_enderroc: Record<string, number>;
+  intents_finalitzacio: FighterAttemptCounter;
+  intents_enderroc: FighterAttemptCounter;
   guard_pulls: Record<string, number>;
   reversions: Record<string, number>;
   escapades: Record<string, number>;
@@ -183,6 +200,7 @@ export interface FullFightAnalysisResponse {
   estadistiques_derivades?: EstadistiquesDerivades;
   incerteses: string[];
   perfil: UserProfile;
+  debug_request?: DebugRequest;
 }
 
 export interface SingleAthleteAnalysisResponse {
@@ -195,6 +213,7 @@ export interface SingleAthleteAnalysisResponse {
   estadistiques_estimades: EstadistiquesEstimades;
   incerteses: string[];
   perfil: UserProfile;
+  debug_request?: DebugRequest;
 }
 
 export type AnalysisResponse =

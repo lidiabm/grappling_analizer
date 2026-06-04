@@ -30,6 +30,13 @@ function getCounterValue(counter: any, fighter: "oponent_1" | "oponent_2") {
   return normalizeNumber(counter[fighter]);
 }
 
+function getAttemptValue(counter: any, fighter: "oponent_1" | "oponent_2", key: "intents" | "reeixits") {
+  if (!counter || typeof counter !== "object") return 0;
+  const val = counter[fighter];
+  if (typeof val === "object" && val !== null) return normalizeNumber(val[key]);
+  return key === "intents" ? normalizeNumber(val) : 0;
+}
+
 function DomainTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
 
@@ -89,26 +96,44 @@ export default function StatsCharts({ stats }: Props) {
 
   const actionData = [
     {
-      name: "Finalitzacions",
-      oponent_1: getCounterValue(
-        resumAccions.intents_finalitzacio,
-        "oponent_1"
-      ),
-      oponent_2: getCounterValue(
-        resumAccions.intents_finalitzacio,
-        "oponent_2"
-      ),
+      name: "Finalitz. (intents)",
+      oponent_1: getAttemptValue(
+        resumAccions.intents_finalitzacio, 
+        "oponent_1", 
+        "intents"),
+      oponent_2: getAttemptValue(
+        resumAccions.intents_finalitzacio, 
+        "oponent_2", 
+        "intents"),
     },
     {
-      name: "Enderrocs",
-      oponent_1: getCounterValue(
-        resumAccions.intents_enderroc,
-        "oponent_1"
-      ),
-      oponent_2: getCounterValue(
-        resumAccions.intents_enderroc,
-        "oponent_2"
-      ),
+      name: "Finalitz. (reeixits)",
+      oponent_1: getAttemptValue(
+        resumAccions.intents_finalitzacio,
+        "oponent_1", 
+        "reeixits"),
+      oponent_2: getAttemptValue(
+        resumAccions.intents_finalitzacio, 
+        "oponent_2", 
+        "reeixits"),
+    },
+    {
+      name: "Enderrocs (intents)",
+      oponent_1: getAttemptValue(resumAccions.intents_enderroc, 
+        "oponent_1", 
+        "intents"),
+      oponent_2: getAttemptValue(resumAccions.intents_enderroc, 
+        "oponent_2", 
+        "intents"),
+    },
+    {
+      name: "Enderrocs (reeixits)",
+      oponent_1: getAttemptValue(resumAccions.intents_enderroc, 
+        "oponent_1", 
+        "reeixits"),
+      oponent_2: getAttemptValue(resumAccions.intents_enderroc, 
+        "oponent_2", 
+        "reeixits"),
     },
     {
       name: "Guard pulls",
@@ -186,7 +211,7 @@ export default function StatsCharts({ stats }: Props) {
       )}
 
       {hasDominantData && (
-        <div className="stats-chart-card">
+        <div className="stats-chart-card stats-chart-card-centered">
           <div className="stats-chart-header">
             <h4>Domini</h4>
             <span>Temps dominant per lluitador</span>
@@ -221,7 +246,7 @@ export default function StatsCharts({ stats }: Props) {
         <div className="stats-chart-card stats-chart-card-large">
           <div className="stats-chart-header">
             <h4>Accions clau</h4>
-            <span>Intents totals observables durant el combat</span>
+          <span>Intents i accions reeixides observables durant el combat</span>  
           </div>
 
           <div className="stats-chart">

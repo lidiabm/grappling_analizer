@@ -1,3 +1,5 @@
+#analysis_prompts2.py
+
 def _analysis_type(profile: str, mode: str) -> str:
     mapping = {
         ("lluitador", "single_athlete"): "auto_analisi",
@@ -74,20 +76,16 @@ Resposta:
 - No utilitzis Markdown ni blocs de codi.
 - No afegeixis cap clau que no estigui definida a l'esquema.
 - Inclou tots els camps obligatoris encara que el valor sigui "desconegut", "incert", "", 0, false o [].
+- Excepció obligatòria: els camps "millores_recomanades" i "prioritats_de_treball" no poden ser [] quan apareixen a l'esquema.
+- Està prohibit escriure "No hi ha millores recomanades" o textos equivalents.
+- Si no hi ha errors greus observables, genera una millora de refinament tècnic basada en el patró observable més clar.
 - El JSON ha de ser parsejable sense errors.
 
-Regles generals:
-- Utilitza exclusivament informació observable al vídeo.
-- No inventis noms, resultats, categories, normes, puntuacions ni intencions.
-- No dedueixis emocions, nivell, experiència, lesió o cansament si no és visualment evident.
-- Si una dada objectiva no es pot confirmar visualment, utilitza "desconegut".
-- Si una interpretació és dubtosa, utilitza "incert".
-- Si no hi ha evidència suficient per omplir una llista, utilitza [].
-- Registra qualsevol dubte rellevant a "incerteses".
-- Mantén coherència entre tot el JSON.
-- Si una acció no és visible completament, no assumeixis el resultat.
-- Si la càmera talla una transició, no dedueixis estabilització.
-- No interpretis grips parcials com control consolidat.
+Principi general:
+- Utilitza només informació visualment verificable.
+- Si no és clar: "desconegut" o "incert".
+- No assumeixis resultats ni control si no es veu completament.
+- Registra dubtes a "incerteses".
 
 Identificació dels oponents:
 - Assigna sempre dos ids fixos: "oponent_1" i "oponent_2".
@@ -96,37 +94,13 @@ Identificació dels oponents:
 - Si apareix clarament un nom al vídeo o marcador, posa'l a "nom_visible".
 - Si no es veu cap nom, posa "desconegut".
 
-Valors permesos per "posicio":
-- standing
-- closed_guard
-- open_guard
-- half_guard
-- side_control
-- mount
-- back_control
-- turtle
-- scramble
-- other
-
-Valors permesos per "controlador":
-- oponent_1
-- oponent_2
-- desconegut
-
-Valors permesos per "tipus_event":
-- inici_intercanvi
-- control
-- transicio
-- intent_finalitzacio
-- intent_enderroc
-- guard_pull
-- escape
-- reversio
-- scramble
-- pausa
-- finalitzacio 
-- avantatge_posicional
-- altre
+Valors permesos:
+- posicio: standing | closed_guard | open_guard | half_guard | side_control | mount | back_control | turtle | scramble | other
+- controlador: oponent_1 | oponent_2 | desconegut
+- tipus_event: inici_intercanvi | control | transicio | intent_finalitzacio | intent_enderroc | guard_pull | escape | reversio | scramble | pausa | finalitzacio | avantatge_posicional | altre
+- metode: submissio | punts | decisio | avantatge | desqualificacio | desconegut
+- tipus_submissio: estrangulacio | armbar | triangle | kimura | americana | leg_lock | ankle_lock | heel_hook | kneebar | toe_hold | guillotine | rear_naked_choke | omoplata | altra | desconegut
+- confiança: alta | mitjana | baixa
 
 Prioritat de classificació de "tipus_event":
 1. finalitzacio
@@ -142,18 +116,10 @@ Prioritat de classificació de "tipus_event":
 11. inici_intercanvi
 12. altre
 
-Valors permesos per "metode":
-- submissio
-- punts
-- decisio
-- avantatge
-- desqualificacio
-- desconegut
+Regles per "tipus_submissio":
+- Només si metode = "submissio".
+- Si no és visible: "desconegut".
 
-Valors permesos per "confianca":
-- alta
-- mitjana
-- baixa
 
 Definicions operatives:
 - "control" implica estabilització clara d'una posició durant aproximadament 3 segons o més.
@@ -161,23 +127,40 @@ Definicions operatives:
 - "scramble" és una fase disputada o caòtica sense control definit.
 - "intent_finalitzacio" exigeix una acció visible orientada a una submissió.
 - "intent_enderroc" exigeix una acció clara per portar l'oponent a terra.
-- "controlador" és el lluitador que controla activament la situació durant el segment.
-- En posicions neutrals o sense control clar, utilitza "desconegut".
 - "avantatge_posicional" és una millora clara de control o estructura sense estabilització completa ni finalització.
 
-Regles del timeline:
-- Segmenta el combat en trams consecutius i coherents.
-- Cada tram ha de tenir "inici" i "fi" en format MM:SS.
-- Els temps són relatius a l'inici del vídeo analitzat.
-- No pot haver-hi solapaments.
-- Els trams han de cobrir tota la seqüència analitzada.
-- Cada tram ha de tenir una sola "posicio" principal.
-- Si la fase és ambigua o transitòria, utilitza "scramble" o "other".
-- "rellevancia" ha de ser un enter entre 1 i 5.
-- "confianca" ha de ser "alta", "mitjana" o "baixa".
-- Si hi ha tall de càmera, obstacle visual o pèrdua parcial de l'acció, marca confiança baixa o mitjana i explica-ho a "incerteses".
-- El "inici" d'un segment ha de coincidir amb el "fi" del segment anterior.
-- No poden existir buits temporals entre segments.
+Timeline:
+- Cobrir tota la durada sense buits ni solapaments.
+- Segments de 5–20s, excepte accions decisives.
+- Un sol tipus_event i una sola posició per segment.
+- Fusiona segments si la situació no canvia.
+- Crea segment nou per: escape, reversió, finalització, guard_pull, intent_enderroc, intent_finalitzacio clar.
+- El timeline és la font única d’estadístiques.
+
+Criteris per evitar "other":
+- "other" només si la posició no encaixa en cap categoria i no es pot determinar visualment.
+
+Controlador:
+- En neutral o scramble: "desconegut".
+- En guardes: controlador = qui imposa l'acció principal.
+- Només canvia si el domini real canvia.
+
+Tipus d'event:
+- guard_pull: acció voluntària d’asseure’s o portar el combat a guàrdia.
+- intent_finalitzacio: atac visible de submissió.
+- intent_enderroc: entrada clara per portar l’oponent a terra.
+- escape: sortir d’una posició de control rival.
+- reversio: passar de bottom a top amb control clar.
+- control: estabilització ≥3s sense atac principal.
+- transicio: canvi de posició sense estabilització.
+- scramble: fase caòtica sense controlador.
+- finalitzacio: submissió confirmada o final del combat.
+- En un combat només pot existir un segment amb "finalitzacio".
+
+Descripcions:
+- Resumeix la fase, no microajustos.
+- Inclou l’autor en accions comptables.
+- rellevancia = 1–5; confiança = alta|mitjana|baixa.
 """
 
 
@@ -249,16 +232,35 @@ Regles:
 - Relaciona cada correcció amb una conseqüència observable.
 - L'altre lluitador només s'ha d'esmentar quan sigui necessari per entendre l'acció.
 
+Resultat personal obligatori:
+- Abans d'escriure "analisi_lluitador", compara sempre:
+  selected_oponent_id amb resum_partit.guanyador.id.
+- Si selected_oponent_id == resum_partit.guanyador.id:
+  "resum_personal" ha de començar exactament amb "Has guanyat el combat".
+- Si selected_oponent_id != resum_partit.guanyador.id i resum_partit.guanyador.id no és "desconegut":
+  "resum_personal" ha de començar exactament amb "Has perdut el combat".
+- Si resum_partit.guanyador.id és "desconegut":
+  "resum_personal" ha de començar exactament amb "No es pot confirmar si has guanyat o perdut".
+- Està prohibit dir "Has guanyat" si selected_oponent_id no coincideix amb resum_partit.guanyador.id.
+- Està prohibit dir "Has perdut" si selected_oponent_id coincideix amb resum_partit.guanyador.id.
+- El resum ha de tenir 2 o 3 frases.
+- La primera frase ha d'indicar el resultat.
+- La segona frase ha d'explicar el moment que ha decidit el combat.
+- Totes les accions atribuïdes a "tu" han de correspondre al selected_oponent_id, no al rival.
+
 Coherència d'identitat:
-- Si "selected_oponent_id" és "oponent_1", totes les frases de "analisi_lluitador" han de referir-se a "oponent_1".
-- Si "selected_oponent_id" és "oponent_2", totes les frases de "analisi_lluitador" han de referir-se a "oponent_2".
-- No atribueixis accions de l'altre oponent al lluitador seleccionat.
-- Si hi ha dubte sobre la identitat, posa "selected_oponent_id": "desconegut" i explica-ho a "incerteses".
+- "analisi_lluitador" només pot analitzar el lluitador indicat per selected_oponent_id.
+- Si selected_oponent_id és "oponent_1", qualsevol frase amb "tu", "has", "vas" o "el teu" ha de referir-se només a oponent_1.
+- Si selected_oponent_id és "oponent_2", qualsevol frase amb "tu", "has", "vas" o "el teu" ha de referir-se només a oponent_2.
+
+Camps de "analisi_lluitador":
+- "resum_personal" ha de tenir 2 o 3 frases i ha de ser directe i personal.
+- "patrons_tactics", "fortaleses_clau", "debilitats_clau" i "millores_recomanades" han de tenir mínim 1 element.
+- "errors_i_correccions" i "encerts_clau" poden ser [] si no hi ha evidència clara.
 
 Evita:
 - analitzar els dos lluitadors per igual.
 - parlar de manera impersonal.
-- repetir la mateixa idea en diversos camps.
 - fer recomanacions genèriques.
 """
 
@@ -309,6 +311,14 @@ Coherència d'identitat:
 - No atribueixis accions de l'altre oponent a l'alumne seleccionat.
 - Si hi ha dubte sobre la identitat, posa "selected_oponent_id": "desconegut" i explica-ho a "incerteses".
 
+Camps de "analisi_lluitador" — regla de completesa obligatòria:
+- Cap camp de text pot quedar buit (""). Si no hi ha evidència suficient, escriu "sense evidència observable".
+- Cap llista pot quedar buida ([]). Cada llista ha de tenir com a mínim un element.
+  Si no hi ha evidència suficient per a un element concret, inclou un objecte amb els camps
+  corresponents omplerts amb "sense evidència observable" o "desconegut" segons el tipus.
+- Aquesta regla s'aplica a: "patrons_tactics", "fortaleses_clau", "debilitats_clau",
+  "errors_i_correccions", "encerts_clau" i "prioritats_de_treball".
+
 Evita:
 - parlar en segona persona.
 - donar consells motivacionals.
@@ -334,6 +344,13 @@ Regles:
 - L'anàlisi de cada oponent ha de ser breu: no entris en el mateix nivell de detall que en single_athlete.
 - No incloguis estadístiques.
 - No incloguis "analisi_lluitador".
+
+Millores obligatòries:
+- Cada oponent dins "analisi_oponents" ha d'incloure com a mínim una entrada a "millores_recomanades".
+- Està prohibit escriure "No hi ha millores recomanades".
+- Si un oponent guanya clarament, proposa una millora de refinament tècnic basada en una situació observable.
+- Si un oponent perd, proposa una millora relacionada amb la causa observable de la derrota.
+- Cada millora ha de ser concreta, accionable i vinculada a una fase del combat.
 
 Evita:
 - centrar l'anàlisi només en un lluitador.
@@ -365,6 +382,13 @@ Estadístiques:
 - Les estadístiques han de comparar els dos oponents.
 - Segueix estrictament els invariants i el procediment definits a la secció INVARIANTS.
 
+Prioritats de treball obligatòries:
+- Cada oponent dins "analisi_oponents" ha d'incloure com a mínim una entrada a "prioritats_de_treball".
+- Està prohibit escriure "No hi ha millores recomanades".
+- Si un oponent guanya clarament, proposa una prioritat de refinament tècnic basada en una situació observable.
+- Si un oponent perd, proposa una prioritat vinculada a la causa observable de la derrota.
+- Cada prioritat ha d'estar basada en una acció, patró o situació observable del timeline.
+
 Evita:
 - focalitzar l'informe en un únic lluitador.
 - fer recomanacions individuals massa detallades.
@@ -379,52 +403,35 @@ Evita:
 
 def _stats_invariants() -> str:
     return """
-INVARIANTS D'ESTADÍSTIQUES (el JSON és incorrecte si no es compleixen):
+INVARIANTS D'ESTADÍSTIQUES (obligatoris):
 
-1. La suma de tots els "segons" dins "temps_per_posicio" ha de ser igual a "duracio_total_segons".
-2. La suma de tots els "percentatge" ha de ser igual a 100.0 (tolerància ±1.0).
-3. Cada interval temporal del combat apareix exactament una vegada a "temps_per_posicio".
-4. Dues files no poden compartir el mateix interval temporal: PROHIBIT crear parelles mirall.
-    PROHIBIT: duplicar el mateix interval temporal per als dos lluitadors.
-    INCORRECTE:
-    - oponent_1 side_control 20s
-    - oponent_2 side_control 20s
-    CORRECTE:
-    { "controlador": "oponent_1", "posicio": "side_control", "segons": 20 }
-5. Posicions controlades (closed_guard, open_guard, half_guard, side_control, mount, back_control, turtle)
-6. Posicions neutrals (standing, scramble, other sense control clar): "controlador" és "desconegut".
-7. El lluitador defensiu NO genera cap fila a "temps_per_posicio".
-8. "resum_accions" ha de ser coherent amb el recompte de "accions_clau":
-   el total de cada tipus per lluitador a "accions_clau" ha de coincidir amb "resum_accions".
-9. "temps_dominant_total" ha de ser igual a la suma de tots els segments controlats per cada lluitador.
-10. Les estadístiques han de derivar exclusivament del timeline.
-No afegeixis informació estadística que no aparegui implícitament al timeline.
+1. La suma total de "segons" a temps_per_posicio = duracio_total_segons.
+2. La suma de tots els "percentatge" = 100.0 ±1.0.
+3. Cada interval temporal apareix exactament una vegada (sense solapaments ni buits).
+4. Només el controlador genera files a temps_per_posicio; el lluitador defensiu no en genera.
+5. En posicions neutrals (standing, scramble, other), "controlador" = "desconegut".
+6. temps_dominant_total = suma dels segments on el controlador és oponent_1 o oponent_2.
+7. Els totals d'accions_clau han de coincidir amb resum_accions.
+8. Totes les estadístiques han de derivar exclusivament del timeline (prohibit inventar-ne).
 
-Definicions per al recompte d'accions:
-- "intent_finalitzacio": qualsevol atac visible de submissió (estrangulació, armbar, triangle,
-  kimura, americana, ankle lock, kneebar) o control clar orientat a finalitzar.
-  Compta intents fallits i reeixits.
-- "intent_enderroc": entrada clara per portar l'oponent a terra (single leg, double leg,
-  body lock, foot sweep, snap down, projecció). Compta intents fallits i reeixits.
-- "guard_pull": acció clara d'asseure's o portar el combat a guàrdia voluntàriament.
-- "reversio": el lluitador passa de posició INFERIOR (bottom) a posició SUPERIOR (top).
-  Exemple de frontera: recuperar guàrdia des de mount_bottom → és ESCAPADA, no reversió.
-- "escapada": sortir d'una posició de control rival cap a standing, guàrdia pròpia o scramble.
-  Nota: guàrdia pròpia és posició inferior però compta com a escapada si el rival tenia
-  mount/back/side control.
-- Si l'autor d'una acció no és visualment clar, no incrementis cap comptador i explica-ho a "incerteses".
-- Si una acció passa dins d'un scramble, compta-la només si l'iniciador és visualment clar.
+DEFINICIONS PER AL RECOMPTE D'ACCIONS:
+- intent_finalitzacio: qualsevol atac visible de submissió. "intents" = tots; "reeixits" = només els que acaben en finalització confirmada.
+- intent_enderroc: entrada clara per portar l'oponent a terra. "intents" = tots; "reeixits" = només els que acaben amb l'oponent a terra.
+- guard_pull: acció voluntària d’asseure’s o portar el combat a guàrdia.
+- reversio: passar de posició inferior a superior amb control clar.
+- escapada: sortir d’una posició de control rival cap a standing, guàrdia pròpia o scramble.
+- Si l’autor no és clar, no comptis l’acció i registra-ho a "incerteses".
+- Accions dins d’un scramble només es compten si l’iniciador és visualment clar.
 
-PROCEDIMENT OBLIGATORI abans de generar "estadistiques_estimades":
-PAS 1: Usa el timeline com a única font per calcular les estadístiques.
-PAS 2: Suma tots els segments del timeline i verifica que coincideixen amb "duracio_total_segons".
-PAS 3: Calcula els percentatges amb la fórmula: (segons / duracio_total_segons) × 100.
-PAS 4: Verifica que la suma dels percentatges sigui 100.0 amb una tolerància de ±1.0.
-PAS 5: Calcula "temps_dominant_total" sumant els segments on "controlador" sigui "oponent_1" o "oponent_2".
-PAS 6: Recorre "accions_clau" i compta cada tipus per lluitador.
-PAS 7: Verifica que els totals de "accions_clau" coincideixin amb "resum_accions".
-PAS 8: Si qualsevol valor és dubtós, afegeix-lo a "incerteses" i usa 0 o "desconegut".
-PAS 9: Genera el JSON només després de completar aquestes comprovacions.
+PROCEDIMENT PER GENERAR LES ESTADÍSTIQUES:
+1. Usa el timeline com a única font.
+2. Suma tots els segments i verifica que coincideixen amb duracio_total_segons.
+3. Calcula percentatges = (segons / duracio_total_segons) × 100.
+4. Verifica que la suma de percentatges = 100 ±1%.
+5. Calcula temps_dominant_total per a cada lluitador.
+6. Recompte d'accions_clau per lluitador.
+7. Verifica coherència amb resum_accions.
+8. Si hi ha dubtes, marca-ho a incerteses i usa 0 o "desconegut".
 """
 
 
@@ -523,9 +530,16 @@ def _analisi_oponent_general_schema() -> str:
       "impacte": "string"
     }
   ],
+  "millores_recomanades": [
+    {
+      "prioritat": "alta|mitjana|baixa",
+      "millora": "string",
+      "objectiu": "string",
+      "benefici_esperat": "string"
+    }
+  ],
   "resum_rendiment": "string"
 }"""
-
 
 def _analisi_oponent_general_entrenador_schema() -> str:
     return """{
@@ -551,9 +565,16 @@ def _analisi_oponent_general_entrenador_schema() -> str:
       "impacte": "string"
     }
   ],
+  "prioritats_de_treball": [
+    {
+      "prioritat": "alta|mitjana|baixa",
+      "area": "string",
+      "problema_tecnic": "string",
+      "objectiu": "string"
+    }
+  ],
   "resum_rendiment": "string"
 }"""
-
 
 # ─────────────────────────────────────────────
 # SCHEMA D'ESTADÍSTIQUES (únic, reutilitzat)
@@ -588,8 +609,8 @@ def _estadistiques_schema() -> str:
   ],
 
   "resum_accions": {
-    "intents_finalitzacio": { "oponent_1": 0, "oponent_2": 0 },
-    "intents_enderroc":     { "oponent_1": 0, "oponent_2": 0 },
+    "intents_finalitzacio": { "oponent_1": { "intents": 0, "reeixits": 0 }, "oponent_2": { "intents": 0, "reeixits": 0 } },
+    "intents_enderroc":     { "oponent_1": { "intents": 0, "reeixits": 0 }, "oponent_2": { "intents": 0, "reeixits": 0 } },
     "guard_pulls":          { "oponent_1": 0, "oponent_2": 0 },
     "reversions":           { "oponent_1": 0, "oponent_2": 0 },
     "escapades":            { "oponent_1": 0, "oponent_2": 0 },
@@ -635,7 +656,7 @@ def _schema_start(mode: str, profile: str) -> str:
       "descripcio": "string"
     }},
     "metode": "submissio|punts|decisio|avantatge|desqualificacio|desconegut",
-    "tipus_submissio": "string|desconegut",
+    "tipus_submissio": "estrangulacio|armbar|triangle|kimura|americana|leg_lock|ankle_lock|heel_hook|kneebar|toe_hold|guillotine|rear_naked_choke|omoplata|altra|desconegut",
     "resum_breu": "string"
   }},
   "timeline": [

@@ -108,7 +108,6 @@ class TempsPosicio(BaseModel):
     segons: int = 0
     percentatge: float = 0.0
 
-
 class AccioClau(BaseModel):
     temps: str
     lluitador: Literal["oponent_1", "oponent_2"]
@@ -116,14 +115,17 @@ class AccioClau(BaseModel):
     detall: str = ""
     confianca: Confianca
 
+class AttemptCount(BaseModel):
+    intents: int = 0
+    reeixits: int = 0
+
+class FighterAttemptCounter(BaseModel):
+    oponent_1: AttemptCount = Field(default_factory=AttemptCount)
+    oponent_2: AttemptCount = Field(default_factory=AttemptCount)
 
 class ResumAccions(BaseModel):
-    intents_finalitzacio: Dict[str, int] = Field(
-        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
-    )
-    intents_enderroc: Dict[str, int] = Field(
-        default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
-    )
+    intents_finalitzacio: FighterAttemptCounter = Field(default_factory=FighterAttemptCounter)
+    intents_enderroc: FighterAttemptCounter = Field(default_factory=FighterAttemptCounter)
     guard_pulls: Dict[str, int] = Field(
         default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
     )
@@ -134,7 +136,6 @@ class ResumAccions(BaseModel):
         default_factory=lambda: {"oponent_1": 0, "oponent_2": 0}
     )
     canvis_control: int = 0
-
 
 class EstadistiquesEstimades(BaseModel):
     duracio_total_segons: int = 0
@@ -169,6 +170,7 @@ class AnalisiLluitador(BaseModel):
 
     errors_i_correccions: List[Any] = Field(default_factory=list)
     encerts_clau: List[Any] = Field(default_factory=list)
+    
     millores_recomanades: List[Any] = Field(default_factory=list)
     prioritats_de_treball: List[Any] = Field(default_factory=list)
 
@@ -185,6 +187,9 @@ class AnalisiOponent(BaseModel):
     errors_principals: List[Any] = Field(default_factory=list)
     encerts_clau: List[Any] = Field(default_factory=list)
 
+    millores_recomanades: List[Any] = Field(default_factory=list)   
+    prioritats_de_treball: List[Any] = Field(default_factory=list)
+
     resum_rendiment: Optional[str] = None
 
 
@@ -199,6 +204,11 @@ class LecturaGlobal(BaseModel):
     lliçons_practiques: Optional[List[str]] = None
     claus_tactiques: Optional[List[str]] = None
 
+class DebugRequest(BaseModel):
+    profile: Optional[str] = None
+    mode: Optional[str] = None
+    athlete_identifier_type: Optional[str] = None
+    athlete_identifier_value: Optional[str] = None
 
 class AnalysisBaseResponse(BaseModel):
     mode: AnalysisMode
@@ -211,6 +221,7 @@ class AnalysisBaseResponse(BaseModel):
     timeline: List[TimelineEvent]
     incerteses: List[str] = Field(default_factory=list)
 
+    debug_request: Optional[DebugRequest] = None
 
 class AnalysisResponse(AnalysisBaseResponse):
     mode: Literal["full_fight"]

@@ -42,6 +42,24 @@ ALLOWED_TIPUS_EVENT = {
 
 ALLOWED_CONFIANCA = {"alta", "mitjana", "baixa"}
 
+ALLOWED_SUBMISSION_TYPES = {
+    "estrangulacio",
+    "armbar",
+    "triangle",
+    "kimura",
+    "americana",
+    "leg_lock",
+    "ankle_lock",
+    "heel_hook",
+    "kneebar",
+    "toe_hold",
+    "guillotine",
+    "rear_naked_choke",
+    "omoplata",
+    "altra",
+    "desconegut",
+}
+
 def _empty_counter() -> dict:
     return {"oponent_1": 0, "oponent_2": 0}
 
@@ -54,6 +72,25 @@ def _normalize_counter(value) -> dict:
         }
     return _empty_counter()
 
+def _empty_attempt_counter() -> dict:
+    return {
+        "oponent_1": {"intents": 0, "reeixits": 0},
+        "oponent_2": {"intents": 0, "reeixits": 0},
+    }
+
+def _normalize_attempt_counter(value) -> dict:
+    result = _empty_attempt_counter()
+    if not isinstance(value, dict):
+        return result
+    for oponent in ("oponent_1", "oponent_2"):
+        v = value.get(oponent, {})
+        if isinstance(v, dict):
+            result[oponent]["intents"] = int(v.get("intents", 0) or 0)
+            result[oponent]["reeixits"] = int(v.get("reeixits", 0) or 0)
+        elif isinstance(v, int):
+            # compatibilidad con formato antiguo
+            result[oponent]["intents"] = v
+    return result
 
 def _normalize_estadistiques(stats: dict) -> dict:
     if not isinstance(stats, dict):
@@ -118,10 +155,10 @@ def _normalize_estadistiques(stats: dict) -> dict:
         ),
         "accions_clau": accions_clau,
         "resum_accions": {
-            "intents_finalitzacio": _normalize_counter(
+            "intents_finalitzacio": _normalize_attempt_counter(
                 resum.get("intents_finalitzacio")
             ),
-            "intents_enderroc": _normalize_counter(
+            "intents_enderroc": _normalize_attempt_counter(
                 resum.get("intents_enderroc")
             ),
             "guard_pulls": _normalize_counter(
@@ -240,6 +277,7 @@ def _default_general_opponent() -> dict:
         "debilitats_clau": [],
         "errors_principals": [],
         "encerts_clau": [],
+        "millores_recomanades": [],
         "resum_rendiment": "",
     }
 
@@ -254,6 +292,7 @@ def _default_general_coach_opponent() -> dict:
         "debilitats_clau": [],
         "errors_principals": [],
         "encerts_clau": [],
+        "prioritats_de_treball": [],
         "resum_rendiment": "",
     }
 
@@ -272,12 +311,12 @@ def _default_combat_stats() -> dict:
         "accions_clau": [],
         "resum_accions": {
             "intents_finalitzacio": {
-                "oponent_1": 0,
-                "oponent_2": 0,
+                "oponent_1": {"intents": 0, "reeixits": 0},
+                "oponent_2": {"intents": 0, "reeixits": 0},
             },
             "intents_enderroc": {
-                "oponent_1": 0,
-                "oponent_2": 0,
+                "oponent_1": {"intents": 0, "reeixits": 0},
+                "oponent_2": {"intents": 0, "reeixits": 0},
             },
             "guard_pulls": {
                 "oponent_1": 0,
@@ -348,6 +387,54 @@ def _normalize_timeline_event(event: dict) -> dict:
         "confianca": confianca,
     }
 
+def _normalize_submission_type(value) -> str:
+    if not isinstance(value, str):
+        return "desconegut"
+
+    cleaned = value.strip().lower()
+
+    if "|" in cleaned:
+        return "desconegut"
+
+    mapping = {
+        "strangle": "estrangulacio",
+        "choke": "estrangulacio",
+        "estrangulacio": "estrangulacio",
+        "estrangulació": "estrangulacio",
+        "estrangulación": "estrangulacio",
+        "rear naked choke": "rear_naked_choke",
+        "mata-lleó": "rear_naked_choke",
+        "mata lleó": "rear_naked_choke",
+        "mata-leao": "rear_naked_choke",
+        "mata leao": "rear_naked_choke",
+        "guillotine": "guillotine",
+        "guillotina": "guillotine",
+        "leglock": "leg_lock",
+        "leg lock": "leg_lock",
+        "clau de cama": "leg_lock",
+        "clau de peu": "leg_lock",
+        "ankle lock": "ankle_lock",
+        "heel hook": "heel_hook",
+        "kneebar": "kneebar",
+        "toe hold": "toe_hold",
+        "armbar": "armbar",
+        "clau de braç": "armbar",
+        "triangle": "triangle",
+        "kimura": "kimura",
+        "americana": "americana",
+        "omoplata": "omoplata",
+        "other": "altra",
+        "altra": "altra",
+        "desconegut": "desconegut",
+    }
+
+    normalized = mapping.get(cleaned, cleaned)
+
+    if normalized not in ALLOWED_SUBMISSION_TYPES:
+        return "desconegut"
+
+    return normalized
+
 
 def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
     analysis_type = _analysis_type(profile, mode)
@@ -395,18 +482,27 @@ def _safe_parse_response(text: str, profile: str, mode: str) -> dict:
             ),
         }
 
-    if isinstance(data.get("resum_partit"), dict):
-        resum = data["resum_partit"]
-        result["resum_partit"] = {
-            "guanyador": resum.get(
-                "guanyador",
-                result["resum_partit"]["guanyador"],
-            ),
-            "perdedor": resum.get("perdedor"),
-            "metode": resum.get("metode", "desconegut"),
-            "tipus_submissio": resum.get("tipus_submissio", "desconegut"),
-            "resum_breu": resum.get("resum_breu", ""),
-        }
+        if isinstance(data.get("resum_partit"), dict):
+            resum = data["resum_partit"]
+
+            metode = resum.get("metode", "desconegut")
+            tipus_submissio = resum.get("tipus_submissio", "desconegut")
+
+            if metode != "submissio":
+                tipus_submissio = "desconegut"
+            else:
+                tipus_submissio = _normalize_submission_type(tipus_submissio)
+
+            result["resum_partit"] = {
+                "guanyador": resum.get(
+                    "guanyador",
+                    result["resum_partit"]["guanyador"],
+                ),
+                "perdedor": resum.get("perdedor"),
+                "metode": metode,
+                "tipus_submissio": tipus_submissio,
+                "resum_breu": resum.get("resum_breu", ""),
+            }
 
     raw_timeline = data.get("timeline", [])
     if isinstance(raw_timeline, list):
@@ -501,6 +597,111 @@ def _generate_content_with_retry(uploaded_file, prompt: str, retries: int = 3, w
 
     raise last_error
 
+def _extract_usage_metadata(response) -> dict:
+    """
+    Extreu la informació de consum de tokens retornada per Gemini.
+
+    usage_metadata pot incloure:
+        - prompt_token_count: tokens d'entrada
+        - candidates_token_count: tokens de sortida
+        - total_token_count: tokens totals
+    """
+
+    usage = getattr(response, "usage_metadata", None)
+
+    if usage is None:
+        return {
+            "prompt_token_count": 0,
+            "candidates_token_count": 0,
+            "total_token_count": 0,
+        }
+
+    return {
+        "prompt_token_count": int(getattr(usage, "prompt_token_count", 0) or 0),
+        "candidates_token_count": int(getattr(usage, "candidates_token_count", 0) or 0),
+        "total_token_count": int(getattr(usage, "total_token_count", 0) or 0),
+    }
+
+def _ensure_analysis_content(parsed: dict) -> None:
+    # --- single_athlete: actúa sobre analisi_lluitador ---
+    analysis = parsed.get("analisi_lluitador")
+    if isinstance(analysis, dict):
+        if not analysis.get("tactica_general"):
+            analysis["tactica_general"] = (
+                "S'ha observat una tàctica basada en la disputa posicional i la recerca de control."
+            )
+        if not analysis.get("model_de_combat"):
+            analysis["model_de_combat"] = (
+                "Model de combat orientat a competir per la posició i estabilitzar els intercanvis."
+            )
+        if not analysis.get("lectura_posicional"):
+            analysis["lectura_posicional"] = (
+                "El rendiment mostra fases de transició, control i defensa que cal consolidar millor."
+            )
+        if not analysis.get("patrons_tactics"):
+            analysis["patrons_tactics"] = ["Recerca de control després dels intercanvis."]
+        if not analysis.get("fortaleses_clau"):
+            analysis["fortaleses_clau"] = ["Manté activitat durant les fases principals del combat."]
+        if not analysis.get("debilitats_clau"):
+            analysis["debilitats_clau"] = ["Necessita consolidar millor les posicions després de les transicions."]
+        if not analysis.get("millores_recomanades"):
+            analysis["millores_recomanades"] = [
+                {
+                    "prioritat": "mitjana",
+                    "millora": "Consolidar el control posicional després de les transicions.",
+                    "objectiu": "Estabilitzar posicions de domini per crear oportunitats de finalització.",
+                    "benefici_esperat": "Reducció d'escapades del rival i major temps en posicions avantatjoses.",
+                }
+            ]
+        if not analysis.get("prioritats_de_treball"):
+            analysis["prioritats_de_treball"] = [
+                {
+                    "prioritat": "mitjana",
+                    "area": "Control posicional",
+                    "problema_tecnic": "Pèrdua de posicions dominants durant les transicions.",
+                    "objectiu": "Consolidar el control i reduir la mobilitat del rival.",
+                }
+            ]
+
+    # --- full_fight: actúa sobre cada oponent dins analisi_oponents ---
+    analisi_oponents = parsed.get("analisi_oponents")
+    if isinstance(analisi_oponents, dict):
+        for oponent_id in ("oponent_1", "oponent_2"):
+            op = analisi_oponents.get(oponent_id)
+            if not isinstance(op, dict):
+                continue
+
+            if not op.get("tactica_general"):
+                op["tactica_general"] = "S'ha observat una tàctica basada en la disputa posicional."
+            if not op.get("patrons_tactics"):
+                op["patrons_tactics"] = ["Recerca de control i oportunitats ofensives."]
+            if not op.get("fortaleses_clau"):
+                op["fortaleses_clau"] = ["Manté activitat durant les fases principals del combat."]
+            if not op.get("debilitats_clau"):
+                op["debilitats_clau"] = ["Necessita consolidar millor les posicions clau."]
+
+            # combat_lluitador → millores_recomanades
+            if "millores_recomanades" in op and not op["millores_recomanades"]:
+                op["millores_recomanades"] = [
+                    {
+                        "prioritat": "mitjana",
+                        "millora": "Millorar la gestió de les transicions posicionals.",
+                        "objectiu": "Reduir l'exposició a finalitzacions durant els canvis de posició.",
+                        "benefici_esperat": "Major control del combat i menys risc de derrota per submissió.",
+                    }
+                ]
+
+            # combat_entrenador → prioritats_de_treball
+            if "prioritats_de_treball" in op and not op["prioritats_de_treball"]:
+                op["prioritats_de_treball"] = [
+                    {
+                        "prioritat": "mitjana",
+                        "area": "Gestió de transicions",
+                        "problema_tecnic": "Exposició durant els canvis de posició.",
+                        "objectiu": "Reduir el risc de finalització en fases de transició.",
+                    }
+                ] 
+
 def analyze_video(
     file_path: str,
     profile: str,
@@ -544,15 +745,28 @@ def analyze_video(
     # Demana al model que analitzi el vídeo seguint el prompt indicat
     response = _generate_content_with_retry(uploaded_file, prompt)
 
-    # Parseja la resposta del model. Si Gemini retorna JSON invàlid,
-    # _safe_parse_response llençarà un error i el backend retornarà 500.
-    # Això evita mostrar un informe buit amb el JSON brut dins d'incerteses.
+    # Extreu el consum de tokens retornat per Gemini
+    usage_metadata = _extract_usage_metadata(response)
+
+    # Mostra el consum de tokens només a la consola del backend
+    print(json.dumps({
+        "event": "gemini_usage",
+        "profile": profile,
+        "mode": mode,
+        "athlete_identifier_type": athlete_identifier_type,
+        "athlete_identifier_value": athlete_identifier_value,
+        "tokens": usage_metadata,
+    }, ensure_ascii=False))
+
+    # Parseja la resposta del model
     parsed = _safe_parse_response(response.text, profile, mode)
+
+    _ensure_analysis_content(parsed)
 
     # En mode entrenador + combat complet, les estadístiques han de sortir
     # del timeline normalitzat, no directament de Gemini.
     # Així evitem llistes gegants o duplicades a "temps_per_posicio".
-    if profile == "entrenador" and mode == "full_fight" and parsed.get("timeline"):
+    if profile == "entrenador" and parsed.get("timeline"):
         clean_stats = derive_stats_from_timeline(parsed["timeline"])
         clean_stats = _normalize_estadistiques(clean_stats)
 
@@ -560,7 +774,13 @@ def analyze_video(
         parsed["estadistiques_derivades"] = clean_stats
 
     else:
-        # En la resta de casos no necessitem estadístiques derivades.
         parsed.pop("estadistiques_derivades", None)
+
+    parsed["debug_request"] = {
+        "profile": profile,
+        "mode": mode,
+        "athlete_identifier_type": athlete_identifier_type,
+        "athlete_identifier_value": athlete_identifier_value,
+    }
 
     return parsed

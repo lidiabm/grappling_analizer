@@ -48,6 +48,11 @@ export default function SaveAnalysisModal({
       return;
     }
 
+    if (!fightDate) {
+      setError("Has d’indicar la data del combat.");
+      return;
+    }
+
     if (showStudentFolder && !trimmedStudentFolder) {
       setError("Has d’indicar la carpeta o el nom de l’alumne.");
       return;
@@ -65,7 +70,7 @@ export default function SaveAnalysisModal({
       fightId,
       profileType: profile,
       studentFolder: showStudentFolder ? trimmedStudentFolder : undefined,
-      fightDate: fightDate || undefined,
+      fightDate: fightDate,
       result,
     };
 
@@ -102,6 +107,7 @@ export default function SaveAnalysisModal({
 
             <input
               type="text"
+              required
               placeholder="Ex: Combat contra Jiménez"
               value={title}
               onChange={(event) => {
@@ -115,7 +121,9 @@ export default function SaveAnalysisModal({
             <span>Data del combat</span>
 
             <input
+              className="save-modal-date-input"
               type="date"
+              required
               value={fightDate}
               onChange={(event) => setFightDate(event.target.value)}
             />
@@ -160,7 +168,9 @@ export default function SaveAnalysisModal({
             onClick={handleSave}
             className="primary-button"
             disabled={
-              !title.trim() || (showStudentFolder && !studentFolder.trim())
+              !title.trim() ||
+              !fightDate ||
+              (showStudentFolder && !studentFolder.trim())
             }
           >
             Guardar
