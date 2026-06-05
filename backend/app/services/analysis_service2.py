@@ -1,4 +1,4 @@
-#analysis_service2.py
+#analysis_service3.py
 import json
 import re
 import time
@@ -622,85 +622,243 @@ def _extract_usage_metadata(response) -> dict:
         "total_token_count": int(getattr(usage, "total_token_count", 0) or 0),
     }
 
+# def _ensure_analysis_content(parsed: dict) -> None:
+#     # --- single_athlete: actúa sobre analisi_lluitador ---
+#     analysis = parsed.get("analisi_lluitador")
+#     if isinstance(analysis, dict):
+#         if not analysis.get("tactica_general"):
+#             analysis["tactica_general"] = (
+#                 "S'ha observat una tàctica basada en la disputa posicional i la recerca de control."
+#             )
+#         if not analysis.get("model_de_combat"):
+#             analysis["model_de_combat"] = (
+#                 "Model de combat orientat a competir per la posició i estabilitzar els intercanvis."
+#             )
+#         if not analysis.get("lectura_posicional"):
+#             analysis["lectura_posicional"] = (
+#                 "El rendiment mostra fases de transició, control i defensa que cal consolidar millor."
+#             )
+#         if not analysis.get("patrons_tactics"):
+#             analysis["patrons_tactics"] = ["Recerca de control després dels intercanvis."]
+#         if not analysis.get("fortaleses_clau"):
+#             analysis["fortaleses_clau"] = ["Manté activitat durant les fases principals del combat."]
+#         if not analysis.get("debilitats_clau"):
+#             analysis["debilitats_clau"] = ["Necessita consolidar millor les posicions després de les transicions."]
+#         if not analysis.get("millores_recomanades"):
+#             analysis["millores_recomanades"] = [
+#                 {
+#                     "prioritat": "mitjana",
+#                     "millora": "Consolidar el control posicional després de les transicions.",
+#                     "objectiu": "Estabilitzar posicions de domini per crear oportunitats de finalització.",
+#                     "benefici_esperat": "Reducció d'escapades del rival i major temps en posicions avantatjoses.",
+#                 }
+#             ]
+#         if not analysis.get("prioritats_de_treball"):
+#             analysis["prioritats_de_treball"] = [
+#                 {
+#                     "prioritat": "mitjana",
+#                     "area": "Control posicional",
+#                     "problema_tecnic": "Pèrdua de posicions dominants durant les transicions.",
+#                     "objectiu": "Consolidar el control i reduir la mobilitat del rival.",
+#                 }
+#             ]
+
+#     # --- full_fight: actúa sobre cada oponent dins analisi_oponents ---
+#     analisi_oponents = parsed.get("analisi_oponents")
+#     if isinstance(analisi_oponents, dict):
+#         for oponent_id in ("oponent_1", "oponent_2"):
+#             op = analisi_oponents.get(oponent_id)
+#             if not isinstance(op, dict):
+#                 continue
+
+#             if not op.get("tactica_general"):
+#                 op["tactica_general"] = "S'ha observat una tàctica basada en la disputa posicional."
+#             if not op.get("patrons_tactics"):
+#                 op["patrons_tactics"] = ["Recerca de control i oportunitats ofensives."]
+#             if not op.get("fortaleses_clau"):
+#                 op["fortaleses_clau"] = ["Manté activitat durant les fases principals del combat."]
+#             if not op.get("debilitats_clau"):
+#                 op["debilitats_clau"] = ["Necessita consolidar millor les posicions clau."]
+
+#             # combat_lluitador → millores_recomanades
+#             if "millores_recomanades" in op and not op["millores_recomanades"]:
+#                 op["millores_recomanades"] = [
+#                     {
+#                         "prioritat": "mitjana",
+#                         "millora": "Millorar la gestió de les transicions posicionals.",
+#                         "objectiu": "Reduir l'exposició a finalitzacions durant els canvis de posició.",
+#                         "benefici_esperat": "Major control del combat i menys risc de derrota per submissió.",
+#                     }
+#                 ]
+
+#             # combat_entrenador → prioritats_de_treball
+#             if "prioritats_de_treball" in op and not op["prioritats_de_treball"]:
+#                 op["prioritats_de_treball"] = [
+#                     {
+#                         "prioritat": "mitjana",
+#                         "area": "Gestió de transicions",
+#                         "problema_tecnic": "Exposició durant els canvis de posició.",
+#                         "objectiu": "Reduir el risc de finalització en fases de transició.",
+#                     }
+#                 ] 
+
+def _build_millora_from_analysis(op: dict) -> dict:
+    errors = op.get("errors_principals") or op.get("errors_i_correccions") or []
+    debilitats = op.get("debilitats_clau") or []
+    patrons = op.get("patrons_tactics") or []
+
+    if errors and isinstance(errors[0], dict):
+        error = errors[0].get("error", "error tècnic observable")
+        impacte = errors[0].get("impacte") or errors[0].get("consequencia") or "ha generat una situació desfavorable"
+        moment = errors[0].get("moment_aproximat")
+
+        return {
+            "prioritat": "alta",
+            "millora": f"Corregir: {error}" + (f" en el moment {moment}" if moment else "."),
+            "objectiu": f"Evitar que aquesta situació torni a provocar: {impacte}.",
+            "benefici_esperat": "Millorar la resposta tècnica en fases similars i reduir el risc de perdre control o rebre una finalització.",
+        }
+
+    if debilitats:
+        debilitat = debilitats[0]
+        return {
+            "prioritat": "mitjana",
+            "millora": f"Treballar específicament aquesta debilitat: {debilitat}.",
+            "objectiu": "Convertir aquest punt feble en una resposta tècnica més estable durant el combat.",
+            "benefici_esperat": "Reduir situacions de vulnerabilitat i millorar la continuïtat tàctica.",
+        }
+
+    if patrons:
+        patro = patrons[0]
+        return {
+            "prioritat": "baixa",
+            "millora": f"Refinar el patró tàctic observat: {patro}.",
+            "objectiu": "Fer que aquest patró sigui més eficient i menys previsible.",
+            "benefici_esperat": "Augmentar l'eficàcia ofensiva o defensiva sense canviar l'estil general de combat.",
+        }
+
+    return {
+        "prioritat": "mitjana",
+        "millora": "Millorar la presa de decisions en les transicions principals del combat.",
+        "objectiu": "Escollir respostes més clares quan canvia la posició o el control.",
+        "benefici_esperat": "Reduir errors en fases obertes i augmentar el control durant el combat.",
+    }
+
+
+def _build_prioritat_from_analysis(op: dict) -> dict:
+    errors = op.get("errors_principals") or op.get("errors_i_correccions") or []
+    debilitats = op.get("debilitats_clau") or []
+
+    if errors and isinstance(errors[0], dict):
+        error = errors[0].get("error", "error tècnic observable")
+        impacte = errors[0].get("impacte") or errors[0].get("consequencia") or "ha generat una situació desfavorable"
+
+        return {
+            "prioritat": "alta",
+            "area": "Correcció tècnica prioritària",
+            "problema_tecnic": f"{error}. Conseqüència observada: {impacte}.",
+            "objectiu": "Eliminar aquest error en situacions similars i millorar la resposta tècnica.",
+        }
+
+    if debilitats:
+        return {
+            "prioritat": "mitjana",
+            "area": "Punt feble principal",
+            "problema_tecnic": debilitats[0],
+            "objectiu": "Transformar aquesta debilitat en una resposta més segura i repetible.",
+        }
+
+    return {
+        "prioritat": "baixa",
+        "area": "Refinament tècnic",
+        "problema_tecnic": "No hi ha un error greu únic, però es pot millorar la qualitat de les transicions.",
+        "objectiu": "Augmentar estabilitat, control i continuïtat tècnica.",
+    }
+
+
 def _ensure_analysis_content(parsed: dict) -> None:
-    # --- single_athlete: actúa sobre analisi_lluitador ---
     analysis = parsed.get("analisi_lluitador")
+
     if isinstance(analysis, dict):
         if not analysis.get("tactica_general"):
             analysis["tactica_general"] = (
                 "S'ha observat una tàctica basada en la disputa posicional i la recerca de control."
             )
+
         if not analysis.get("model_de_combat"):
             analysis["model_de_combat"] = (
                 "Model de combat orientat a competir per la posició i estabilitzar els intercanvis."
             )
+
         if not analysis.get("lectura_posicional"):
             analysis["lectura_posicional"] = (
                 "El rendiment mostra fases de transició, control i defensa que cal consolidar millor."
             )
+
         if not analysis.get("patrons_tactics"):
-            analysis["patrons_tactics"] = ["Recerca de control després dels intercanvis."]
-        if not analysis.get("fortaleses_clau"):
-            analysis["fortaleses_clau"] = ["Manté activitat durant les fases principals del combat."]
-        if not analysis.get("debilitats_clau"):
-            analysis["debilitats_clau"] = ["Necessita consolidar millor les posicions després de les transicions."]
-        if not analysis.get("millores_recomanades"):
-            analysis["millores_recomanades"] = [
-                {
-                    "prioritat": "mitjana",
-                    "millora": "Consolidar el control posicional després de les transicions.",
-                    "objectiu": "Estabilitzar posicions de domini per crear oportunitats de finalització.",
-                    "benefici_esperat": "Reducció d'escapades del rival i major temps en posicions avantatjoses.",
-                }
-            ]
-        if not analysis.get("prioritats_de_treball"):
-            analysis["prioritats_de_treball"] = [
-                {
-                    "prioritat": "mitjana",
-                    "area": "Control posicional",
-                    "problema_tecnic": "Pèrdua de posicions dominants durant les transicions.",
-                    "objectiu": "Consolidar el control i reduir la mobilitat del rival.",
-                }
+            analysis["patrons_tactics"] = [
+                "Recerca de control després dels intercanvis."
             ]
 
-    # --- full_fight: actúa sobre cada oponent dins analisi_oponents ---
+        if not analysis.get("fortaleses_clau"):
+            analysis["fortaleses_clau"] = [
+                "Manté activitat durant les fases principals del combat."
+            ]
+
+        if not analysis.get("debilitats_clau"):
+            analysis["debilitats_clau"] = [
+                "Necessita consolidar millor les posicions després de les transicions."
+            ]
+
+        if "millores_recomanades" in analysis and not analysis["millores_recomanades"]:
+            analysis["millores_recomanades"] = [
+                _build_millora_from_analysis(analysis)
+            ]
+
+        if "prioritats_de_treball" in analysis and not analysis["prioritats_de_treball"]:
+            analysis["prioritats_de_treball"] = [
+                _build_prioritat_from_analysis(analysis)
+            ]
+
     analisi_oponents = parsed.get("analisi_oponents")
+
     if isinstance(analisi_oponents, dict):
         for oponent_id in ("oponent_1", "oponent_2"):
             op = analisi_oponents.get(oponent_id)
+
             if not isinstance(op, dict):
                 continue
 
             if not op.get("tactica_general"):
-                op["tactica_general"] = "S'ha observat una tàctica basada en la disputa posicional."
-            if not op.get("patrons_tactics"):
-                op["patrons_tactics"] = ["Recerca de control i oportunitats ofensives."]
-            if not op.get("fortaleses_clau"):
-                op["fortaleses_clau"] = ["Manté activitat durant les fases principals del combat."]
-            if not op.get("debilitats_clau"):
-                op["debilitats_clau"] = ["Necessita consolidar millor les posicions clau."]
+                op["tactica_general"] = (
+                    "S'ha observat una tàctica basada en la disputa posicional."
+                )
 
-            # combat_lluitador → millores_recomanades
-            if "millores_recomanades" in op and not op["millores_recomanades"]:
-                op["millores_recomanades"] = [
-                    {
-                        "prioritat": "mitjana",
-                        "millora": "Millorar la gestió de les transicions posicionals.",
-                        "objectiu": "Reduir l'exposició a finalitzacions durant els canvis de posició.",
-                        "benefici_esperat": "Major control del combat i menys risc de derrota per submissió.",
-                    }
+            if not op.get("patrons_tactics"):
+                op["patrons_tactics"] = [
+                    "Recerca de control i oportunitats ofensives."
                 ]
 
-            # combat_entrenador → prioritats_de_treball
+            if not op.get("fortaleses_clau"):
+                op["fortaleses_clau"] = [
+                    "Manté activitat durant les fases principals del combat."
+                ]
+
+            if not op.get("debilitats_clau"):
+                op["debilitats_clau"] = [
+                    "Necessita consolidar millor les posicions clau."
+                ]
+
+            if "millores_recomanades" in op and not op["millores_recomanades"]:
+                op["millores_recomanades"] = [
+                    _build_millora_from_analysis(op)
+                ]
+
             if "prioritats_de_treball" in op and not op["prioritats_de_treball"]:
                 op["prioritats_de_treball"] = [
-                    {
-                        "prioritat": "mitjana",
-                        "area": "Gestió de transicions",
-                        "problema_tecnic": "Exposició durant els canvis de posició.",
-                        "objectiu": "Reduir el risc de finalització en fases de transició.",
-                    }
-                ] 
+                    _build_prioritat_from_analysis(op)
+                ]
+
 
 def analyze_video(
     file_path: str,

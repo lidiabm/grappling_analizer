@@ -1,7 +1,7 @@
 /* TYPES.ts */
 export type UserProfile = "lluitador" | "entrenador";
 export type OponentId = "oponent_1" | "oponent_2" | "desconegut";
-export type Confianca = "alta" | "mitjana" | "baixa";
+export type Confianca = "alta" | "mitjana" | "baixa" | "insuficient";
 
 export type AnalysisMode = "full_fight" | "single_athlete";
 
@@ -297,7 +297,7 @@ export interface InformeLluitadorScouting {
   que_evitar: string[];
   pla_combat: string[];
   consells_clau: string[];
-  missatge_final: string;
+  clau_tactica: string;
 }
 
 export interface InformeEntrenadorScouting {

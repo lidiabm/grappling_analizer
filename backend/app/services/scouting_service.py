@@ -53,13 +53,13 @@ def _default_response(profile: str) -> dict:
                 "patrons_amb_poca_evidencia": [],
             },
             "perfil_numeric": {
-                "pressio": "desconegut",
-                "agressivitat": "desconegut",
-                "control_posicional": "desconegut",
-                "defensa": "desconegut",
-                "perill_submissio": "desconegut",
-                "explosivitat": "desconegut",
-                "adaptabilitat": "desconegut",
+                "pressio": -1,
+                "agressivitat": -1,
+                "control_posicional": -1,
+                "defensa": -1,
+                "perill_submissio": -1,
+                "explosivitat": -1,
+                "adaptabilitat": -1,
             },
         }
 
@@ -72,7 +72,7 @@ def _default_response(profile: str) -> dict:
             "que_evitar": [],
             "pla_combat": [],
             "consells_clau": [],
-            "missatge_final": "",
+            "clau_tactica": "",
         }
 
     return base
@@ -185,6 +185,30 @@ def _generate_content_with_retry(
 
     raise last_error
 
+def _extract_usage_metadata(response) -> dict:
+    """
+    Extreu la informació de consum de tokens retornada per Gemini.
+
+    usage_metadata pot incloure:
+        - prompt_token_count: tokens d'entrada
+        - candidates_token_count: tokens de sortida
+        - total_token_count: tokens totals
+    """
+
+    usage = getattr(response, "usage_metadata", None)
+
+    if usage is None:
+        return {
+            "prompt_token_count": 0,
+            "candidates_token_count": 0,
+            "total_token_count": 0,
+        }
+
+    return {
+        "prompt_token_count": int(getattr(usage, "prompt_token_count", 0) or 0),
+        "candidates_token_count": int(getattr(usage, "candidates_token_count", 0) or 0),
+        "total_token_count": int(getattr(usage, "total_token_count", 0) or 0),
+    }
 
 def analyze_scouting_videos(
     file_paths: list[str],
@@ -236,6 +260,16 @@ def analyze_scouting_videos(
     response = _generate_content_with_retry(
         uploaded_files + [prompt]
     )
+
+    usage_metadata = _extract_usage_metadata(response)
+
+    print(json.dumps({
+        "event": "gemini_usage",
+        "analysis": "scouting",
+        "profile": profile,
+        "videos_count": len(file_paths),
+        "tokens": usage_metadata,
+    }, ensure_ascii=False))
 
     parsed = _safe_parse_response(
         response.text,

@@ -215,7 +215,9 @@ async def scouting(
         result["mode"] = "scouting"
         result["perfil"] = profile
 
-        return result
+        validated = ScoutingResponse.model_validate(result)
+
+        return validated.model_dump()
 
     except HTTPException:
         raise

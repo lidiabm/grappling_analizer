@@ -1,45 +1,19 @@
-"""
-scouting_prompts.py
--------------------
-Generació de prompts per a l'anàlisi de scouting de rivals en grappling.
-
-Perfils suportats:
-  - ProfileType.LLUITADOR : informe pràctic i directe per al competidor.
-  - ProfileType.ENTRENADOR: informe tàctic avançat amb mètriques i gràfics.
-
-Ús bàsic:
-    prompt = build_scouting_prompt(
-        profile="entrenador",
-        video_descriptions=[
-            {"index": 0, "filename": "video1.mp4", "rival_description": "cinturó blau, cabell curt"},
-        ],
-    )
-"""
-
+# scouting_prompts3.py
 from __future__ import annotations
-
 from enum import Enum
 from typing import Any
 
-
-# ---------------------------------------------------------------------------
 # Tipus i constants
-# ---------------------------------------------------------------------------
-
 class ProfileType(str, Enum):
     """Perfils de sortida del scouting."""
 
     LLUITADOR = "lluitador"
     ENTRENADOR = "entrenador"
 
-
 _MAX_LIST_ITEMS = 5  # límit recomanat per a llistes en el prompt
+_MAX_LIST_ITEMS_PLA = 3
 
-
-# ---------------------------------------------------------------------------
 # Punt d'entrada públic
-# ---------------------------------------------------------------------------
-
 def build_scouting_prompt(
     profile: str,
     video_descriptions: list[dict[str, Any]],
@@ -50,7 +24,8 @@ def build_scouting_prompt(
         profile: "lluitador" o "entrenador". Qualsevol altre valor
                  es tracta com a "lluitador" per defecte.
         video_descriptions: Llista de diccionaris amb les claus
-            ``index``, ``filename`` i ``rival_description``.
+          ``index``, ``filename``, ``rival_description`` i,
+          opcionalment, ``rival_known_info`` (nom, pes, estil conegut).
 
     Returns:
         String amb el prompt complet llest per enviar al model.
@@ -69,10 +44,7 @@ def build_scouting_prompt(
     return builders[profile_type](video_context)
 
 
-# ---------------------------------------------------------------------------
 # Construcció del context de vídeos
-# ---------------------------------------------------------------------------
-
 def _build_video_context(video_descriptions: list[dict[str, Any]]) -> str:
     """Converteix la llista de vídeos en un bloc de text estructurat per al prompt.
 
@@ -89,6 +61,7 @@ def _build_video_context(video_descriptions: list[dict[str, Any]]) -> str:
         raw_index = item.get("index", "?")
         filename = item.get("filename", "desconegut")
         rival_description = item.get("rival_description", "desconegut")
+        rival_known_info = item.get("rival_known_info", "")
 
         try:
             video_number = int(raw_index) + 1
@@ -97,15 +70,13 @@ def _build_video_context(video_descriptions: list[dict[str, Any]]) -> str:
 
         lines.append(
             f"- Vídeo {video_number} | fitxer: '{filename}' | rival: {rival_description}"
+            + (f" | info prèvia: {rival_known_info}" if rival_known_info else "")
         )
 
     return "\n".join(lines)
 
 
-# ---------------------------------------------------------------------------
 # Regles base compartides
-# ---------------------------------------------------------------------------
-
 def _base_rules(video_context: str) -> str:
     """Bloc de regles i instruccions comunes als dos perfils."""
     return f"""
@@ -114,7 +85,7 @@ Analitza diversos vídeos del mateix rival en un context de grappling.
 Vídeos proporcionats:
 {video_context}
 
-=== FORMAT DE SORTIDA ===
+FORMAT DE SORTIDA 
 - Retorna ÚNICAMENT un objecte JSON vàlid, sense cap text fora del JSON.
 - No utilitzis Markdown, blocs de codi ni cap caràcter fora del JSON.
 - Escriu tot el contingut textual en català.
@@ -122,7 +93,7 @@ Vídeos proporcionats:
 - No afegeixis camps addicionals fora del format especificat.
 - El JSON ha de ser parsejable sense errors.
 
-=== OBJECTIU GENERAL ===
+OBJECTIU GENERAL 
 - Analitza NOMÉS el rival indicat en cada vídeo.
 - Tracta cada vídeo com una observació independent abans de sintetitzar.
 - Detecta patrons recurrents entre vídeos.
@@ -133,7 +104,16 @@ Vídeos proporcionats:
 - Detecta situacions on el rival rendeix millor o queda exposat.
 - Justifica breument cada conclusió amb una observació visual concreta.
 
-=== REGLES DE QUALITAT ===
+PAS PREVI (NO MOSTRIS AIXÒ A LA SORTIDA)
+Segueix aquest ordre intern abans de generar el JSON:
+1. Per cada vídeo: identifica el rival, llista les seves accions observables.
+2. Compara els vídeos: quines accions es repeteixen? Quines són puntuals?
+3. Classifica: punts forts / debilitats / patrons / incerteses.
+4. Valora el nivell de confiança global segons el criteri definit.
+5. Ara genera el JSON amb les conclusions anteriors.
+No mostris els passos 1-4. Únicament el JSON final.
+
+REGLES DE QUALITAT 
 - Utilitza NOMÉS informació observable als vídeos. No inventis dades.
 - No assumeixis res que no es pugui veure clarament.
 - No descriguis elements irrellevants (públic, àrbitre, càmera, qualitat del vídeo).
@@ -141,22 +121,30 @@ Vídeos proporcionats:
 - Si un vídeo no permet seguir el rival amb seguretat, redueix el nivell de confiança global.
 - Si una conclusió no és clara, posa-la a "incerteses".
 - Si no hi ha evidència suficient per omplir un camp, utilitza [] o "desconegut".
+- Per a cada valor numèric que incloguis, ha d'existir una acció concreta observable que el justifiqui. Si no pots citar-la, utilitza "desconegut".
 - Evita afirmacions vagues: en lloc de "és agressiu" escriu "inicia l'agarre als primers 10 segons de cada intercanvi".
 - Sigues específic i vincula cada afirmació a una acció observable.
 - Limita cada llista a un màxim de {_MAX_LIST_ITEMS} ítems, ordenant per rellevància.
 - No repeteixis informació entre seccions.
 
-=== CRITERI DE NIVELL DE CONFIANÇA GLOBAL ===
+CRITERI DE NIVELL DE CONFIANÇA GLOBAL
 - "alta"  : rival identificat clarament en 2 o més vídeos sense dubtes significatius.
 - "mitjana": identificat en 1 vídeo, o amb dubtes puntuals en algun vídeo.
 - "baixa" : identificació incerta, vídeo de baixa qualitat o seguiment poc fiable.
+- "insuficient": material no analitzable (vídeo corrupte, rival no visible, durada massa curta).
+
+EXEMPLES DE REFERÈNCIA 
+Aquests exemples mostren el nivell de concreció esperat. NO els copiïs literalment.
+- Patró recurrent: "Inicia guard pull sistemàtic quan l'adversari pressiona en 3 dels 4 vídeos"
+- Punt fort: "Control fort des de side control; en cap vídeo l'adversari aconsegueix escapar un cop establert el pes"
+- Debilitat: "Perd l'esquena quan intenta el guillotin i no tanca el braç; observat 2 vegades al vídeo 1"
+- Acció accionable: "Quan intenta passar la guàrdia per dalt, rota cap a l'esquena immediatament"
+- Valor numèric vàlid: atacs_iniciats = 4 (observat: 2 intents de single leg, 1 guard pull, 1 doble cama)
+- Valor numèric invàlid → "desconegut": no es pot comptar amb seguretat des de l'angle de càmera
 """
 
 
-# ---------------------------------------------------------------------------
 # Prompt per al perfil lluitador
-# ---------------------------------------------------------------------------
-
 def _fighter_prompt(video_context: str) -> str:
     """Prompt orientat al competidor: pràctic, directe i aplicable."""
     return (
@@ -180,54 +168,51 @@ FORMAT JSON EXACTE:
   "rival_info": {{
     "nom_visible": "string o desconegut",
     "descripcio_visual": "Descripció física breu: complexió, alçada aproximada, trets distintius",
-    "nivell_confianca_global": "alta | mitjana | baixa"
+    "nivell_confianca_global": "alta | mitjana | baixa | insuficient"
   }},
 
   "resum_rival": "Resum en 2-3 frases del rival: estil predominant, posicions preferides i principal amenaça",
 
   "patrons_recurrents": [
-    "Acció concreta observada en múltiples vídeos. Exemple: 'Agafa doble cama des de la distància mitjana quan l'adversari avança'"
+    "Acció concreta observada en múltiples vídeos."
   ],
 
   "punts_forts": [
-    "Habilitat específica. Exemple: 'Control fort des de side control, difícil d'escapar quan estableix el pes'"
+    "Habilitat específica."
   ],
 
   "debilitats": [
-    "Vulnerabilitat concreta. Exemple: 'Perd l'esquena quan intenta el guillotin i no tanca el braç'"
+    "Vulnerabilitat concreta."
   ],
 
   "informe_lluitador": {{
     "amenaces_principals": [
-      "Perill concret que pot representar. Exemple: 'Triangle des de guard tancat si et descuides el braç esquerre'"
+      "Perill concret que pot representar."
     ],
     "debilitats_a_explotar": [
-      "Com aprofitar una debilitat. Exemple: 'Quan intenta passar la guàrdia per dalt, exposa l'esquena'"
+      "Com aprofitar una debilitat."
     ],
     "que_evitar": [
-      "Situació o posició que cal evitar. Exemple: 'No anar al terra en posició inferior, domina el ground-and-pound'"
+      "Situació o posició que cal evitar. "
     ],
     "pla_combat": [
-      "Pas tàctic concret. Exemple: '1. Mantenir la distància i forçar-lo a avançar. 2. Aprofitar les seves intents de doble cama per cercar la guillotina'"
+      "Pas tàctic concret i ordenat. Màxim 3 passos."
     ],
     "consells_clau": [
-      "Consell pràctic i directe. Exemple: 'Si et submergeix sota, rota immediatament cap a la dreta per evitar el single leg'"
+      "Consell pràctic i directe."
     ],
-    "missatge_final": "Frase motivacional i estratègica de 1-2 línies que resumeixi la clau del combat"
+    "clau_tactica": "La conclusió tàctica més important en 1-2 frases, basada únicament en el que s'ha observat als vídeos. Sense frases motivacionals."
   }},
 
   "incerteses": [
-    "Aspecte no clar o no verificable. Exemple: 'En el vídeo 2 no es pot confirmar si la pèrdua de posició va ser tàctica o un error'"
+    "Aspecte no clar o no verificable."
   ]
 }}
 """
     )
 
 
-# ---------------------------------------------------------------------------
 # Prompt per al perfil entrenador
-# ---------------------------------------------------------------------------
-
 def _coach_prompt(video_context: str) -> str:
     """Prompt orientat a l'entrenador: tàctic, estructurat i amb mètriques."""
     return (
@@ -262,48 +247,48 @@ FORMAT JSON EXACTE:
   "rival_info": {{
     "nom_visible": "string o desconegut",
     "descripcio_visual": "Descripció física breu: complexió, alçada aproximada, trets distintius",
-    "nivell_confianca_global": "alta | mitjana | baixa"
+    "nivell_confianca_global": "alta | mitjana | baixa | insuficient"
   }},
 
   "resum_rival": "Resum en 2-4 frases: model de combat, posicions preferides, estil defensiu i principal amenaça tàctica",
 
   "patrons_recurrents": [
-    "Patró tàctic observat en múltiples vídeos amb indicació de freqüència. Exemple: 'Inicia guard pull sistemàtic en 3 dels 4 vídeos quan l'adversari pressiona'"
+    "Patró tàctic observat en múltiples vídeos amb indicació de freqüència."
   ],
 
   "punts_forts": [
-    "Habilitat tècnica específica amb evidència. Exemple: 'Raspada de taló des de guard de destraler amb alta taxa d'efectivitat observada'"
+    "Habilitat tècnica específica amb evidència."
   ],
 
   "debilitats": [
-    "Vulnerabilitat tàctica concreta. Exemple: 'Defensa reactiva quan perd el control de la cama; no recupera la guàrdia i cau al bottom side control'"
+    "Vulnerabilitat tàctica concreta."
   ],
 
   "informe_entrenador": {{
-    "model_de_combat": "Descripció concreta en 1-2 frases del model tàctic. Exemple: 'Cerca la lluita de terra via single leg o guard pull; una vegada al terra prioritza posicions de cama sobre control posicional clàssic'",
+    "model_de_combat": "Descripció concreta en 1-2 frases del model tàctic.", 
     "patrons_ofensius": [
-      "Patró ofensiu específic. Exemple: 'Ataca el heel hook extern des de guard de 50/50 quan l'adversari intenta passar per dalt'"
+      "Patró ofensiu específic."
     ],
     "patrons_defensius": [
-      "Patró defensiu específic. Exemple: 'Recupera guard usant la tècnica de inversió de cadera quan és al bottom de side control'"
+      "Patró defensiu específic." 
     ],
     "situacions_on_puntua": [
-      "Context tàctic on el rival és més efectiu. Exemple: 'Puntua majoritàriament des de guard de destraler en combat de peu'"
+      "Context tàctic on el rival és més efectiu." 
     ],
     "situacions_on_queda_exposat": [
-      "Context tàctic on el rival és vulnerable. Exemple: 'Queda exposat quan l'adversari passa a north-south i controla el pes'"
+      "Context tàctic on el rival és vulnerable." 
     ],
     "pla_tactic_recomanat": [
-      "Acció tàctica recomanada. Exemple: '1. Evitar la lluita de cames i prioritzar control posicional clàssic (mount, back control)'"
+       "Acció tàctica recomanada. Màxim {_MAX_LIST_ITEMS_PLA} passos ordenats."
     ],
     "focus_entrenament": [
-      "Àrea d'entrenament prioritària. Exemple: 'Defensa de heel hook extern des de posició de 50/50'"
+      "Àrea d'entrenament prioritària."
     ],
     "exercicis_recomanats": [
-      "Exercici concret. Exemple: 'Drilling de sortida de 50/50 cap a tall-kneeling per evitar l'exposició al heel hook'"
+      "Exercici concret."
     ],
     "riscos_principals": [
-      "Risc tàctic prioritari. Exemple: 'Alt risc de submissió per heel hook si es permet el 50/50 sense control de la línia central'"
+      "Risc tàctic prioritari."
     ]
   }},
 
@@ -333,10 +318,10 @@ FORMAT JSON EXACTE:
     ],
 
     "resum_global": {{
-      "accions_mes_frequents": ["Acció observada amb freqüència. Exemple: 'Intents de guard pull: ~8 vegades en total'"],
-      "situacions_mes_repetides": ["Situació recurrent. Exemple: 'Lluita de cames des de guard de destraler'"],
-      "zones_de_risc": ["Zona o posició de risc. Exemple: '50/50 amb control de l'angle exterior'"],
-      "tendencies_tactiques": ["Tendència observada. Exemple: 'Preferència per submissions de cama sobre estrangulaments'"],
+      "accions_mes_frequents": ["Acció observada amb freqüència."],
+      "situacions_mes_repetides": ["Situació recurrent."],
+      "zones_de_risc": ["Zona o posició de risc."],
+      "tendencies_tactiques": ["Tendència observada."],
       "patrons_amb_mes_evidencia": ["Patró confirmat en múltiples vídeos"],
       "patrons_amb_poca_evidencia": ["Patró observat en un sol vídeo (evidència limitada)"]
     }},
@@ -360,8 +345,8 @@ FORMAT JSON EXACTE:
       "descripcio": "Recompte total d'accions ofensives observades en tots els vídeos. Inclou NOMÉS accions amb valor > 0.",
       "dades": [
         {{
-          "label": "Nom curt de l'acció. Exemple: 'Guard pull'",
-          "valor": "number (recompte total observat)"
+          "label": "Nom curt de l'acció.",
+          "valor": "number (recompte total observat, > 0)"
         }}
       ],
       "interpretacio": "Frase que explica el que mostren les dades i la seva rellevància tàctica"
@@ -372,13 +357,13 @@ FORMAT JSON EXACTE:
       "titol": "Perfil tàctic del rival",
       "descripcio": "Valoració de 0 a 10 de les principals dimensions tàctiques. Utilitza -1 per a dimensions no avaluables.",
       "dades": [
-        {{"label": "pressio",           "valor": "integer 0-10 o -1"}},
-        {{"label": "agressivitat",      "valor": "integer 0-10 o -1"}},
-        {{"label": "control_posicional","valor": "integer 0-10 o -1"}},
-        {{"label": "defensa",           "valor": "integer 0-10 o -1"}},
-        {{"label": "perill_submissio",  "valor": "integer 0-10 o -1"}},
-        {{"label": "explosivitat",      "valor": "integer 0-10 o -1"}},
-        {{"label": "adaptabilitat",     "valor": "integer 0-10 o -1"}}
+          {{"label": "pressio", "valor": "integer 0-10 o -1"}},
+          {{"label": "agressivitat", "valor": "integer 0-10 o -1"}},
+          {{"label": "control_posicional", "valor": "integer 0-10 o -1"}},
+          {{"label": "defensa", "valor": "integer 0-10 o -1"}},
+          {{"label": "perill_submissio", "valor": "integer 0-10 o -1"}},
+          {{"label": "explosivitat", "valor": "integer 0-10 o -1"}},
+          {{"label": "adaptabilitat", "valor": "integer 0-10 o -1"}}
       ],
       "escala": "0-10",
       "interpretacio": "Frase que destaca els punts alts i baixos del perfil i la seva implicació tàctica"
@@ -390,7 +375,7 @@ FORMAT JSON EXACTE:
       "descripcio": "Nivell de risc (0-10) que representa el rival en cadascuna de les situacions de combat identificades.",
       "dades": [
         {{
-          "label": "Nom curt de la situació. Exemple: '50/50'",
+          "label": "Nom curt de la situació.",
           "valor": "integer 0-10 (risc estimat)"
         }}
       ],
@@ -400,7 +385,7 @@ FORMAT JSON EXACTE:
   ],
 
   "incerteses": [
-    "Aspecte no clar o no verificable. Exemple: 'En el vídeo 3 no es pot confirmar si la pèrdua de posició va ser tàctica o un error de càmera'"
+    "Aspecte no clar o no verificable. "
   ]
 }}
 """

@@ -1,5 +1,4 @@
 #analysis_prompts2.py
-
 def _analysis_type(profile: str, mode: str) -> str:
     mapping = {
         ("lluitador", "single_athlete"): "auto_analisi",
@@ -8,7 +7,6 @@ def _analysis_type(profile: str, mode: str) -> str:
         ("entrenador", "full_fight"): "combat_entrenador",
     }
     return mapping.get((profile, mode), "auto_analisi")
-
 
 def build_prompt(
     profile: str,
@@ -61,10 +59,7 @@ def build_prompt(
     return "\n".join(part.strip() for part in parts if part.strip())
 
 
-# ─────────────────────────────────────────────
 # BASE
-# ─────────────────────────────────────────────
-
 def _base_rules() -> str:
     return """
 Analitza aquest vídeo d'un combat de grappling.
@@ -76,7 +71,6 @@ Resposta:
 - No utilitzis Markdown ni blocs de codi.
 - No afegeixis cap clau que no estigui definida a l'esquema.
 - Inclou tots els camps obligatoris encara que el valor sigui "desconegut", "incert", "", 0, false o [].
-- Excepció obligatòria: els camps "millores_recomanades" i "prioritats_de_treball" no poden ser [] quan apareixen a l'esquema.
 - Està prohibit escriure "No hi ha millores recomanades" o textos equivalents.
 - Si no hi ha errors greus observables, genera una millora de refinament tècnic basada en el patró observable més clar.
 - El JSON ha de ser parsejable sense errors.
@@ -115,11 +109,11 @@ Prioritat de classificació de "tipus_event":
 10. avantatge_posicional
 11. inici_intercanvi
 12. altre
+- Si hi ha un intent_finalitzacio actiu, té prioritat sobre control o transicio.
 
 Regles per "tipus_submissio":
 - Només si metode = "submissio".
 - Si no és visible: "desconegut".
-
 
 Definicions operatives:
 - "control" implica estabilització clara d'una posició durant aproximadament 3 segons o més.
@@ -164,10 +158,7 @@ Descripcions:
 """
 
 
-# ─────────────────────────────────────────────
 # PERFIL
-# ─────────────────────────────────────────────
-
 def _profile_rules(profile: str) -> str:
     if profile == "entrenador":
         return """
@@ -204,11 +195,7 @@ Evita:
 - recomanacions vagues.
 """
 
-
-# ─────────────────────────────────────────────
 # REGLES D'ANÀLISI
-# ─────────────────────────────────────────────
-
 def _auto_analisi_rules(
     athlete_identifier_type: str | None,
     athlete_identifier_value: str | None,
@@ -283,7 +270,6 @@ Regles:
 - Identifica quin oponent correspon a l'alumne indicat.
 - "selected_oponent_id" ha de ser "oponent_1", "oponent_2" o "desconegut".
 - Escriu sobre l'alumne en tercera persona.
-- No parlis directament a l'alumne.
 - L'anàlisi tècnica textual ha d'estar centrada en l'alumne seleccionat.
 - Les estadístiques han de cobrir sempre els dos oponents per permetre comparació.
 - Prioritza lectura posicional, cadenes tècniques, patrons tàctics i relacions causa-efecte.
@@ -322,11 +308,9 @@ Camps de "analisi_lluitador" — regla de completesa obligatòria:
 Evita:
 - parlar en segona persona.
 - donar consells motivacionals.
-- fer recomanacions genèriques.
 - analitzar els dos lluitadors per igual en l'anàlisi textual.
 - incloure estadístiques que no siguin estimables a partir del vídeo.
 """
-
 
 def _combat_lluitador_rules() -> str:
     return """
@@ -342,7 +326,6 @@ Regles:
 - Mantén l'anàlisi més simple i accionable que en el perfil d'entrenador.
 - Dona importància a decisions, oportunitats, riscos, errors clars i accions útils per competir millor.
 - L'anàlisi de cada oponent ha de ser breu: no entris en el mateix nivell de detall que en single_athlete.
-- No incloguis estadístiques.
 - No incloguis "analisi_lluitador".
 
 Millores obligatòries:
@@ -359,7 +342,6 @@ Evita:
 - recomanacions massa generals.
 """
 
-
 def _combat_entrenador_rules() -> str:
     return """
 Objectiu:
@@ -375,7 +357,6 @@ Regles:
 - Prioritza dinàmica global del combat, control posicional, patrons repetits i moments decisius.
 - Inclou estadístiques estimades del combat complet per generar gràfics comparatius.
 - No parlis directament a cap lluitador.
-- No incloguis "analisi_lluitador".
 
 Estadístiques:
 - Inclou estadístiques estimades del combat complet per generar gràfics comparatius.
@@ -393,14 +374,9 @@ Evita:
 - focalitzar l'informe en un únic lluitador.
 - fer recomanacions individuals massa detallades.
 - convertir-ho en un pla d'entrenament.
-- incloure estadístiques no estimables visualment.
 """
 
-
-# ─────────────────────────────────────────────
 # INVARIANTS D'ESTADÍSTIQUES
-# ─────────────────────────────────────────────
-
 def _stats_invariants() -> str:
     return """
 INVARIANTS D'ESTADÍSTIQUES (obligatoris):
@@ -434,11 +410,7 @@ PROCEDIMENT PER GENERAR LES ESTADÍSTIQUES:
 8. Si hi ha dubtes, marca-ho a incerteses i usa 0 o "desconegut".
 """
 
-
-# ─────────────────────────────────────────────
 # SCHEMAS D'ANÀLISI TEXTUAL
-# ─────────────────────────────────────────────
-
 def _analisi_propi_schema() -> str:
     return """{
   "resum_personal": "string",
@@ -470,7 +442,6 @@ def _analisi_propi_schema() -> str:
     }
   ]
 }"""
-
 
 def _analisi_alumne_schema() -> str:
     return """{
@@ -508,7 +479,6 @@ def _analisi_alumne_schema() -> str:
     }
   ]
 }"""
-
 
 def _analisi_oponent_general_schema() -> str:
     return """{
@@ -576,10 +546,7 @@ def _analisi_oponent_general_entrenador_schema() -> str:
   "resum_rendiment": "string"
 }"""
 
-# ─────────────────────────────────────────────
 # SCHEMA D'ESTADÍSTIQUES (únic, reutilitzat)
-# ─────────────────────────────────────────────
-
 def _estadistiques_schema() -> str:
     return """{
   "duracio_total_segons": 0,
@@ -618,11 +585,7 @@ def _estadistiques_schema() -> str:
   }
 }"""
 
-
-# ─────────────────────────────────────────────
 # SCHEMA D'INICI (compartit)
-# ─────────────────────────────────────────────
-
 def _schema_start(mode: str, profile: str) -> str:
     selected = "desconegut" if mode == "full_fight" else "oponent_1|oponent_2|desconegut"
 
@@ -656,7 +619,7 @@ def _schema_start(mode: str, profile: str) -> str:
       "descripcio": "string"
     }},
     "metode": "submissio|punts|decisio|avantatge|desqualificacio|desconegut",
-    "tipus_submissio": "estrangulacio|armbar|triangle|kimura|americana|leg_lock|ankle_lock|heel_hook|kneebar|toe_hold|guillotine|rear_naked_choke|omoplata|altra|desconegut",
+    "tipus_submissio": "desconegut",
     "resum_breu": "string"
   }},
   "timeline": [
@@ -672,11 +635,7 @@ def _schema_start(mode: str, profile: str) -> str:
     }}
   ],"""
 
-
-# ─────────────────────────────────────────────
 # SCHEMAS DE SORTIDA FINALS
-# ─────────────────────────────────────────────
-
 def _single_athlete_schema(profile: str) -> str:
     if profile == "lluitador":
         return f"""

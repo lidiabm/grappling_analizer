@@ -1,11 +1,12 @@
 from typing import List, Literal
 from pydantic import BaseModel
 
+UnknownNumber = int | Literal["desconegut"]
 
 class ScoutingRivalInfo(BaseModel):
     nom_visible: str
     descripcio_visual: str
-    nivell_confianca_global: Literal["alta", "mitjana", "baixa"]
+    nivell_confianca_global: Literal["alta", "mitjana", "baixa", "insuficient"]
 
 
 class InformeLluitadorScouting(BaseModel):
@@ -14,7 +15,7 @@ class InformeLluitadorScouting(BaseModel):
     que_evitar: List[str]
     pla_combat: List[str]
     consells_clau: List[str]
-    missatge_final: str
+    clau_tactica: str
 
 
 class InformeEntrenadorScouting(BaseModel):

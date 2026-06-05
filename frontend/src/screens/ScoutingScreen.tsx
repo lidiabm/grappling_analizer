@@ -339,7 +339,7 @@ function ScoutingScreen({ profile, onBack }: Props) {
                 />
               </div>
 
-              <ScoutingCharts grafics={result.grafics_suggerits} />
+              <ScoutingCharts grafics={result.grafics_suggerits ?? []} />
             </>
           )}
 
@@ -361,10 +361,11 @@ function ScoutingScreen({ profile, onBack }: Props) {
                 wide
               />
 
-              {result.informe_lluitador.missatge_final && (
+              {result.informe_lluitador.clau_tactica && (
                 <div className="scouting-result-block scouting-result-block-wide">
-                  <h4>Missatge final</h4>
-                  <p>{result.informe_lluitador.missatge_final}</p>
+                  <h4>Clau tàctica</h4>
+                  <p>{result.informe_lluitador.clau_tactica
+                    }</p>
                 </div>
               )}
             </div>
