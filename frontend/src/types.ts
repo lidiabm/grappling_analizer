@@ -1,4 +1,3 @@
-/* TYPES.ts */
 export type UserProfile = "lluitador" | "entrenador";
 export type OponentId = "oponent_1" | "oponent_2" | "desconegut";
 export type Confianca = "alta" | "mitjana" | "baixa" | "insuficient";
@@ -291,14 +290,14 @@ export interface ScoutingRivalInfo {
   nivell_confianca_global: Confianca;
 }
 
-export interface InformeLluitadorScouting {
+export type InformeLluitadorScouting = {
   amenaces_principals: string[];
   debilitats_a_explotar: string[];
   que_evitar: string[];
   pla_combat: string[];
   consells_clau: string[];
   clau_tactica: string;
-}
+}; 
 
 export interface InformeEntrenadorScouting {
   model_de_combat: string;

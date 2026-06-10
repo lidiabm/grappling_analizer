@@ -11,6 +11,10 @@ type Props = {
   profile: UserProfile;
 };
 
+function getTodayDateInputValue() {
+  return new Date().toISOString().split("T")[0];
+}
+
 export default function SaveAnalysisModal({
   open,
   onClose,
@@ -23,6 +27,8 @@ export default function SaveAnalysisModal({
   const [studentFolder, setStudentFolder] = useState("");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  const today = getTodayDateInputValue();
 
   if (!open) return null;
 
@@ -53,6 +59,11 @@ export default function SaveAnalysisModal({
       return;
     }
 
+    if (fightDate > today) {
+      setError("La data del combat no pot ser posterior a la data actual.");
+      return;
+    }
+
     if (showStudentFolder && !trimmedStudentFolder) {
       setError("Has d’indicar la carpeta o el nom de l’alumne.");
       return;
@@ -70,7 +81,7 @@ export default function SaveAnalysisModal({
       fightId,
       profileType: profile,
       studentFolder: showStudentFolder ? trimmedStudentFolder : undefined,
-      fightDate: fightDate,
+      fightDate,
       result,
     };
 
@@ -124,8 +135,12 @@ export default function SaveAnalysisModal({
               className="save-modal-date-input"
               type="date"
               required
+              max={today}
               value={fightDate}
-              onChange={(event) => setFightDate(event.target.value)}
+              onChange={(event) => {
+                setFightDate(event.target.value);
+                setError("");
+              }}
             />
           </label>
 
@@ -170,6 +185,7 @@ export default function SaveAnalysisModal({
             disabled={
               !title.trim() ||
               !fightDate ||
+              fightDate > today ||
               (showStudentFolder && !studentFolder.trim())
             }
           >

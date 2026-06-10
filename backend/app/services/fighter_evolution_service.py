@@ -3,7 +3,7 @@ import re
 import time
 
 from app.services.gemini_client import client
-from app.prompts.evolution_prompt2 import build_evolution_prompt
+from app.prompts.evolution_prompts import build_evolution_prompt
 
 
 def _strip_code_fences(text: str) -> str:
@@ -115,7 +115,8 @@ def _safe_parse_response(text: str) -> dict:
         print(str(e))
         print(text)
         return fallback
-    
+
+
 def _generate_content_with_retry(prompt: str, retries: int = 3):
     last_error = None
 
@@ -139,6 +140,32 @@ def _generate_content_with_retry(prompt: str, retries: int = 3):
     raise last_error
 
 
+def _extract_usage_metadata(response) -> dict:
+    """
+    Extreu la informació de consum de tokens retornada per Gemini.
+
+    usage_metadata pot incloure:
+        - prompt_token_count: tokens d'entrada
+        - candidates_token_count: tokens de sortida
+        - total_token_count: tokens totals
+    """
+
+    usage = getattr(response, "usage_metadata", None)
+
+    if usage is None:
+        return {
+            "prompt_token_count": 0,
+            "candidates_token_count": 0,
+            "total_token_count": 0,
+        }
+
+    return {
+        "prompt_token_count": int(getattr(usage, "prompt_token_count", 0) or 0),
+        "candidates_token_count": int(getattr(usage, "candidates_token_count", 0) or 0),
+        "total_token_count": int(getattr(usage, "total_token_count", 0) or 0),
+    }
+
+
 def analyze_fighter_evolution(
     old_analysis: dict,
     new_analysis: dict,
@@ -150,6 +177,18 @@ def analyze_fighter_evolution(
 
     response = _generate_content_with_retry(prompt)
 
+    usage_metadata = _extract_usage_metadata(response)
+
+    print(json.dumps({
+        "event": "gemini_usage",
+        "service": "fighter_evolution",
+        "mode": "evolucio",
+        "model": "gemini-2.5-flash-lite",
+        "tokens": usage_metadata,
+    }, ensure_ascii=False))
+
     parsed = _safe_parse_response(response.text)
+
+    parsed["debug_tokens"] = usage_metadata
 
     return parsed

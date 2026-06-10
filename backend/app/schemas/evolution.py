@@ -1,29 +1,24 @@
 from typing import Literal, Optional
 from pydantic import BaseModel
 
-
 class FighterEvolutionRequest(BaseModel):
     old_analysis: dict
     new_analysis: dict
-
 
 class FighterInfo(BaseModel):
     nom_visible: str
     descripcio_visual: str
     confianca_analisi: Literal["alta", "mitjana", "baixa"]
 
-
 class StablePatterns(BaseModel):
     fortaleses_consolidades: list[str]
     debilitats_persistents: list[str]
-
 
 class TacticalEvolution(BaseModel):
     model_antic: str
     model_recent: str
     canvi_observat: str
     interpretacio: str
-
 
 class TechnicalEvolution(BaseModel):
     tecniques_millorades: list[str]
@@ -61,11 +56,9 @@ class ChartDataPoint(BaseModel):
     label: str
     valor: int
 
-
 class ChartSerie(BaseModel):
     nom: str
     dades: list[ChartDataPoint]
-
 
 class SuggestedChart(BaseModel):
     id: str
@@ -77,12 +70,10 @@ class SuggestedChart(BaseModel):
     escala: str
     interpretacio: str
 
-
 class TrainingRecommendations(BaseModel):
     prioritat_alta: list[str]
     prioritat_mitjana: list[str]
     manteniment: list[str]
-
 
 class FighterEvolutionResponse(BaseModel):
     mode: Literal["evolucio"]

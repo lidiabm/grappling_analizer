@@ -2,14 +2,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-_MAX_LIST_ITEMS = 5  # límit recomanat per a llistes en el prompt
+_MAX_LIST_ITEMS = 5 
 
-# ---------------------------------------------------------------------------
-# Punt d'entrada públic
-# ---------------------------------------------------------------------------
+
 def build_evolution_prompt(
     old_analysis: dict[str, Any],
     new_analysis: dict[str, Any],
@@ -40,10 +35,7 @@ def build_evolution_prompt(
 
     return _evolution_prompt(old_json, new_json)
 
-
-# ---------------------------------------------------------------------------
 # Construcció del prompt
-# ---------------------------------------------------------------------------
 def _evolution_prompt(old_json: str, new_json: str) -> str:
     """Genera el prompt complet per a l'anàlisi d'evolució."""
     return f"""
@@ -58,7 +50,7 @@ A partir d'aquesta comparació, has de generar un informe d'evolució que sigui
 útil per a l'entrenador i el lluitador per entendre la progressió real i planificar
 les properes sessions d'entrenament.
 
-=== FORMAT DE SORTIDA ===
+FORMAT DE SORTIDA 
 - Retorna ÚNICAMENT un objecte JSON vàlid, sense cap text fora del JSON.
 - No utilitzis Markdown, blocs de codi ni cap caràcter fora del JSON.
 - Escriu tot el contingut textual en català.
@@ -66,7 +58,7 @@ les properes sessions d'entrenament.
 - No afegeixis camps addicionals fora del format especificat.
 - El JSON ha de ser parsejable sense errors.
 
-=== OBJECTIU GENERAL ===
+OBJECTIU GENERAL 
 - Detectar millores tècniques i tàctiques reals entre els dos anàlisis.
 - Identificar empitjoraments o regressions.
 - Reconèixer patrons que es mantenen estables (fortaleses consolidades o debilitats persistents).
@@ -74,7 +66,14 @@ les properes sessions d'entrenament.
 - Analitzar l'evolució tècnica (execució d'accions específiques).
 - Generar recomanacions d'entrenament concretes i accionables.
 
-=== REGLES DE QUALITAT ===
+IDENTIFICACIÓ DEL LLUITADOR (CRÍTIC)
+- Els dos anàlisis proporcionats corresponen al MATEIX lluitador.
+- L'informe d'evolució s'ha de basar EXCLUSIVAMENT en aquest lluitador.
+- No analitzis rivals, oponents ni tercers que apareguin en els anàlisis.
+- Si algun anàlisi no permet identificar clarament el lluitador, indica-ho a "incerteses".
+- No barregis informació entre anàlisis: cada dada ha de provenir clarament de l'anàlisi antic o del recent, mai d'una fusió inventada.
+
+REGLES DE QUALITAT 
 - Basa't EXCLUSIVAMENT en els dos anàlisis proporcionats. No inventis informació.
 - No assumeixis progrés o regressió si no hi ha evidència clara en les dades.
 - Diferencia entre canvis confirmats i possibles canvis amb evidència limitada.
@@ -87,17 +86,23 @@ les properes sessions d'entrenament.
 - El camp "magnitud_canvi" ha de reflectir la intensitat real del canvi observat,
   no una valoració optimista.
 
-=== CRITERI DE MAGNITUD DEL CANVI ===
+PRIORITAT DE REGLES
+1) No inventar informació.
+2) Basar-se només en els dos anàlisis proporcionats.
+3) Respectar el format JSON exacte.
+4) Limitar les llistes a {_MAX_LIST_ITEMS} ítems.
+
+CRITERI DE MAGNITUD DEL CANVI 
 - "alta"  : canvi clar i consistent en múltiples aspectes o àrees.
 - "mitjana": canvi observable en algunes àrees però no generalitzat.
 - "baixa" : canvi puntual o amb evidència limitada; podria ser variabilitat natural.
 
-=== CRITERI DE CONFIANÇA DE L'ANÀLISI ===
+CRITERI DE CONFIANÇA DE L'ANÀLISI 
 - "alta"  : els dos anàlisis contenen dades riques i comparables sense ambigüitats.
 - "mitjana": un dels dos anàlisis té dades parcials o hi ha algunes ambigüitats.
 - "baixa" : dades insuficients en un o ambdós anàlisis per fer comparacions fiables.
 
-=== DADES D'ENTRADA ===
+DADES D'ENTRADA 
 
 ANÀLISI ANTIC:
 {old_json}
@@ -105,7 +110,7 @@ ANÀLISI ANTIC:
 ANÀLISI RECENT:
 {new_json}
 
-=== FORMAT JSON EXACTE ===
+FORMAT JSON EXACTE 
 
 {{
   "mode": "evolucio",

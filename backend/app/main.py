@@ -1,6 +1,5 @@
-# main.py
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Literal, Optional, Union, List 
 import traceback
 import json
 
@@ -8,7 +7,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.services.analysis_service2 import analyze_video
+from app.services.analysis_service import analyze_video
 from app.services.training_focus_service import build_training_focus_response
 from app.services.scouting_service import analyze_scouting_videos
 from app.services.fighter_evolution_service import analyze_fighter_evolution
@@ -159,9 +158,9 @@ async def training_focus(payload: dict):
     response_model=ScoutingResponse,
 )
 async def scouting(
-    videos: Annotated[list[UploadFile], File(...)],
-    profile: Annotated[Literal["lluitador", "entrenador"], Form(...)],
-    video_descriptions: Annotated[str, Form(...)],
+    videos: List[UploadFile] = File(...),
+    profile: Literal["lluitador", "entrenador"] = Form(...),
+    video_descriptions: str = Form(...),
 ):
     if not videos:
         raise HTTPException(
@@ -245,7 +244,6 @@ async def scouting(
             detail=f"Error fent scouting: {message}",
         )
     
-
 @app.post(
     "/fighter-evolution",
     response_model=FighterEvolutionResponse,
