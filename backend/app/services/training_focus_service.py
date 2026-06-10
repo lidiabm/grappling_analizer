@@ -40,7 +40,22 @@ def get_analysis_data(analysis: dict) -> dict:
 
 def get_student_id(analysis: dict) -> str:
     data = get_analysis_data(analysis)
-    return data.get("selected_oponent_id") or "oponent_1"
+    selected = data.get("selected_oponent_id")
+
+    if selected in {"oponent_1", "oponent_2"}:
+        return selected
+
+    return "oponent_1"
+
+
+def get_rival_id(student_id: str) -> str:
+    if student_id == "oponent_1":
+        return "oponent_2"
+
+    if student_id == "oponent_2":
+        return "oponent_1"
+
+    return "oponent_2"
 
 
 def get_by_fighter_or_global(value: Any, fighter: str) -> float:
@@ -51,6 +66,25 @@ def get_by_fighter_or_global(value: Any, fighter: str) -> float:
         return normalize_number(value)
 
     return 0
+
+
+def get_attempts(value: Any, fighter: str) -> float:
+    if isinstance(value, dict):
+        fighter_value = value.get(fighter)
+
+        if isinstance(fighter_value, dict):
+            return normalize_number(fighter_value.get("intents"))
+
+        return normalize_number(fighter_value)
+
+    return get_by_fighter_or_global(value, fighter)
+
+
+def get_simple_counter(value: Any, fighter: str) -> float:
+    if isinstance(value, dict):
+        return normalize_number(value.get(fighter))
+
+    return get_by_fighter_or_global(value, fighter)
 
 
 def parse_date(value: Any) -> datetime:
@@ -105,56 +139,108 @@ def filter_recent_weeks(analyses: list[dict], weeks: int) -> list[dict]:
     ]
 
 
+def get_neutral_time_from_positions(stats: dict) -> float:
+    positions = stats.get("temps_per_posicio") or []
+
+    total = 0.0
+
+    for item in positions:
+        controlador = item.get("controlador")
+
+        if controlador == "desconegut":
+            total += normalize_number(item.get("segons"))
+
+    return total
+
+
+def get_total_fight_time(stats: dict, dominant_time: float, controlled_time: float) -> float:
+    explicit_total = normalize_number(stats.get("duracio_total_segons"))
+
+    if explicit_total > 0:
+        return explicit_total
+
+    neutral_time = get_neutral_time_from_positions(stats)
+
+    return dominant_time + controlled_time + neutral_time
+
+
 def build_metrics(analyses: list[dict]) -> list[dict]:
     metrics = []
 
     for index, analysis in enumerate(analyses):
         data = get_analysis_data(analysis)
         stats = data.get("estadistiques_estimades") or {}
+        resum_accions = stats.get("resum_accions") or {}
+
         student_id = get_student_id(analysis)
+        rival_id = get_rival_id(student_id)
+
+        dominant_total = stats.get("temps_dominant_total") or {}
 
         dominant_time = get_by_fighter_or_global(
-            stats.get("temps_dominant_total"),
+            dominant_total,
             student_id,
         )
 
-        defensive_time = get_by_fighter_or_global(
-            stats.get("temps_defensiu_total"),
-            student_id,
+        controlled_time = get_by_fighter_or_global(
+            dominant_total,
+            rival_id,
         )
 
-        neutral_time = normalize_number(stats.get("temps_neutral_total"))
-        total_fight_time = dominant_time + defensive_time + neutral_time
+        total_fight_time = get_total_fight_time(
+            stats,
+            dominant_time,
+            controlled_time,
+        )
+
+        neutral_time = max(
+            total_fight_time - dominant_time - controlled_time,
+            0,
+        )
 
         metrics.append({
             "fightId": analysis.get("fightId") or analysis.get("id") or str(index),
             "label": get_analysis_label(analysis, index),
             "date": analysis.get("fightDate"),
+
+            # Temps en què l'alumne domina.
             "dominantTime": round1(dominant_time),
-            "defensiveTime": round1(defensive_time),
+
+            # Temps sota control rival = temps en què domina l'oponent.
+            "controlledTime": round1(controlled_time),
+
+            # Alias mantingut per compatibilitat amb codi antic.
+            "defensiveTime": round1(controlled_time),
+
             "neutralTime": round1(neutral_time),
             "totalFightTime": round1(total_fight_time),
+
             "dominantPct": pct(dominant_time, total_fight_time),
-            "defensivePct": pct(defensive_time, total_fight_time),
+            "controlledPct": pct(controlled_time, total_fight_time),
+
+            # Alias mantingut per compatibilitat amb codi antic.
+            "defensivePct": pct(controlled_time, total_fight_time),
+
             "neutralPct": pct(neutral_time, total_fight_time),
-            "submissionAttempts": round1(get_by_fighter_or_global(
-                stats.get("intents_finalitzacio"),
+
+            "submissionAttempts": round1(get_attempts(
+                resum_accions.get("intents_finalitzacio"),
                 student_id,
             )),
-            "takedownAttempts": round1(get_by_fighter_or_global(
-                stats.get("intents_enderroc"),
+            "takedownAttempts": round1(get_attempts(
+                resum_accions.get("intents_enderroc"),
                 student_id,
             )),
-            "guardPulls": round1(get_by_fighter_or_global(
-                stats.get("guard_pulls"),
+            "guardPulls": round1(get_simple_counter(
+                resum_accions.get("guard_pulls"),
                 student_id,
             )),
-            "reversals": round1(get_by_fighter_or_global(
-                stats.get("reversions"),
+            "reversals": round1(get_simple_counter(
+                resum_accions.get("reversions"),
                 student_id,
             )),
-            "escapes": round1(get_by_fighter_or_global(
-                stats.get("escapades"),
+            "escapes": round1(get_simple_counter(
+                resum_accions.get("escapades"),
                 student_id,
             )),
         })
@@ -206,11 +292,9 @@ def build_position_totals(
         )
 
         for item in positions:
-            if (
-                only_selected_student
-                and item.get("lluitador")
-                and item.get("lluitador") != student_id
-            ):
+            controlador = item.get("controlador")
+
+            if only_selected_student and controlador != student_id:
                 continue
 
             position = item.get("posicio") or "other"
@@ -249,20 +333,34 @@ def build_global_metrics_by_week(analyses: list[dict]) -> list[dict]:
         metrics = build_metrics(grouped[week])
 
         dominant_time = avg(metrics, "dominantTime")
-        defensive_time = avg(metrics, "defensiveTime")
+        controlled_time = avg(metrics, "controlledTime")
         neutral_time = avg(metrics, "neutralTime")
-        total_fight_time = dominant_time + defensive_time + neutral_time
+        total_fight_time = avg(metrics, "totalFightTime")
+
+        if total_fight_time <= 0:
+            total_fight_time = dominant_time + controlled_time + neutral_time
 
         result.append({
             "fightId": week,
             "label": week,
+
             "dominantTime": dominant_time,
-            "defensiveTime": defensive_time,
+            "controlledTime": controlled_time,
+
+            # Alias mantingut per compatibilitat amb codi antic.
+            "defensiveTime": controlled_time,
+
             "neutralTime": neutral_time,
             "totalFightTime": round1(total_fight_time),
+
             "dominantPct": pct(dominant_time, total_fight_time),
-            "defensivePct": pct(defensive_time, total_fight_time),
+            "controlledPct": pct(controlled_time, total_fight_time),
+
+            # Alias mantingut per compatibilitat amb codi antic.
+            "defensivePct": pct(controlled_time, total_fight_time),
+
             "neutralPct": pct(neutral_time, total_fight_time),
+
             "submissionAttempts": total(metrics, "submissionAttempts"),
             "takedownAttempts": total(metrics, "takedownAttempts"),
             "guardPulls": total(metrics, "guardPulls"),
@@ -278,7 +376,7 @@ def get_evolution_text(metrics: list[dict]) -> str:
         return "Encara no hi ha prou dades."
 
     dominant_diff = diff(metrics, "dominantTime")
-    defensive_diff = diff(metrics, "defensiveTime")
+    controlled_diff = diff(metrics, "controlledTime")
     submission_diff = diff(metrics, "submissionAttempts")
     escape_diff = diff(metrics, "escapes")
 
@@ -287,8 +385,11 @@ def get_evolution_text(metrics: list[dict]) -> str:
     if dominant_diff > 0:
         messages.append(f"més domini (+{dominant_diff}s)")
 
-    if defensive_diff < 0:
-        messages.append(f"menys defensa ({defensive_diff}s)")
+    if controlled_diff < 0:
+        messages.append(f"menys temps sota control rival ({controlled_diff}s)")
+
+    if controlled_diff > 0:
+        messages.append(f"més temps sota control rival (+{controlled_diff}s)")
 
     if submission_diff > 0:
         messages.append(f"més finalitzacions (+{submission_diff})")
@@ -303,14 +404,14 @@ def get_main_focus(metrics: list[dict]) -> str:
     recent_metrics = metrics[-3:] if len(metrics) > 3 else metrics
 
     last_dominant = latest(recent_metrics, "dominantTime")
-    last_defensive = latest(recent_metrics, "defensiveTime")
+    last_controlled = latest(recent_metrics, "controlledTime")
     last_submission = latest(recent_metrics, "submissionAttempts")
     last_escapes = latest(recent_metrics, "escapes")
 
-    if last_defensive > last_dominant:
+    if last_controlled > last_dominant:
         return "Treballar defensa i escapades"
 
-    if last_defensive > 0 and last_escapes < 1:
+    if last_controlled > 0 and last_escapes < 1:
         return "Treballar sortides de posicions inferiors"
 
     if last_submission < 1:
@@ -320,7 +421,7 @@ def get_main_focus(metrics: list[dict]) -> str:
 
 
 def get_global_focus(metrics: list[dict]) -> list[str]:
-    defensive_avg = avg(metrics, "defensiveTime")
+    controlled_avg = avg(metrics, "controlledTime")
     dominant_avg = avg(metrics, "dominantTime")
 
     submission_total = total(metrics, "submissionAttempts")
@@ -328,21 +429,21 @@ def get_global_focus(metrics: list[dict]) -> list[str]:
     escapes_total = total(metrics, "escapes")
     reversals_total = total(metrics, "reversals")
 
-    defensive_trend = diff(metrics, "defensiveTime")
+    controlled_trend = diff(metrics, "controlledTime")
 
     focuses = []
 
-    if defensive_avg > dominant_avg or defensive_trend > 0:
+    if controlled_avg > dominant_avg or controlled_trend > 0:
         focuses.append(
-            "Reduir temps defensiu: frames, retenció de guàrdia i escapades"
+            "Reduir temps sota control rival: frames, retenció de guàrdia i escapades"
         )
 
-    if escapes_total < len(metrics) and defensive_avg > 0:
+    if escapes_total < len(metrics) and controlled_avg > 0:
         focuses.append(
             "Millorar sortides de posicions inferiors abans de concedir control"
         )
 
-    if dominant_avg > defensive_avg and submission_total < len(metrics):
+    if dominant_avg > controlled_avg and submission_total < len(metrics):
         focuses.append(
             "Convertir posicions dominants en amenaces de finalització"
         )
@@ -352,7 +453,7 @@ def get_global_focus(metrics: list[dict]) -> list[str]:
             "Treballar entrades, desequilibris i continuïtat fins a l’enderroc"
         )
 
-    if reversals_total < len(metrics) and defensive_avg > 0:
+    if reversals_total < len(metrics) and controlled_avg > 0:
         focuses.append(
             "Afegir reversions des de defensa per recuperar la iniciativa"
         )
@@ -387,7 +488,13 @@ def group_by_student(analyses: list[dict]) -> list[dict]:
             "positionTotals": build_position_totals(sorted_asc, True),
             "summary": {
                 "dominantChange": diff(metrics, "dominantTime"),
-                "defensiveChange": diff(metrics, "defensiveTime"),
+
+                # Este es el valor que usa la tarjeta de "Temps sota control rival".
+                "controlledChange": diff(metrics, "controlledTime"),
+
+                # Alias mantingut per compatibilitat amb codi antic.
+                "defensiveChange": diff(metrics, "controlledTime"),
+
                 "submissionChange": diff(metrics, "submissionAttempts"),
                 "evolutionText": get_evolution_text(metrics),
                 "mainFocus": get_main_focus(metrics),

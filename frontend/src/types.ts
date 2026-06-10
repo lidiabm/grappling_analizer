@@ -264,6 +264,7 @@ export type StudentFocus = {
   positionTotals: PositionTotal[];
   summary: {
     dominantChange: number;
+    controlledChange: number;
     defensiveChange: number;
     submissionChange: number;
     evolutionText: string;

@@ -60,12 +60,20 @@ function getTrendClass(value: number, positiveIsGood = true) {
 }
 
 function getControlledChange(student: StudentFocus) {
-  const summary = student.summary as StudentFocus["summary"] & {
-    controlledChange?: number;
-    defensiveChange?: number;
-  };
+  if (student.summary.controlledChange !== undefined) {
+    return student.summary.controlledChange;
+  }
 
-  return summary.controlledChange ?? summary.defensiveChange ?? 0;
+  if (student.metrics.length >= 2) {
+    const firstMetric = student.metrics[0];
+    const lastMetric = student.metrics.at(-1);
+
+    if (lastMetric) {
+      return lastMetric.controlledTime - firstMetric.controlledTime;
+    }
+  }
+
+  return 0;
 }
 
 function getStudentAlerts(student: StudentFocus) {
@@ -321,7 +329,9 @@ function GlobalFocusBlock({ data }: { data: TrainingFocusResponse }) {
 
 function StudentBlock({ student }: { student: StudentFocus }) {
   const alerts = useMemo(() => getStudentAlerts(student), [student]);
+
   const rates = useMemo(() => getStudentRates(student), [student]);
+
   const controlledChange = getControlledChange(student);
 
   return (
@@ -376,7 +386,9 @@ function StudentBlock({ student }: { student: StudentFocus }) {
           >
             <span>Finalitzacions</span>
             <strong>{formatChange(student.summary.submissionChange)}</strong>
-            <small>{getTrendText(student.summary.submissionChange, true)}</small>
+            <small>
+              {getTrendText(student.summary.submissionChange, true)}
+            </small>
           </div>
 
           <div className="evolution-card">
